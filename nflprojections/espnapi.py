@@ -29,8 +29,8 @@ class Scraper:
 
     """
 
-    def __init__(self, season, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, season):
+        """Creates Scraper instance"""
         self.season = season
         self._s = HTMLSession()
 
