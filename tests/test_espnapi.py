@@ -1,28 +1,32 @@
 # -*- coding: utf-8 -*-
+from functools import lru_cache
 import json
-import logging
-from pathlib import Path
 import pandas as pd
 import pytest
-import random
 
 
 from nflprojections.espnapi import Scraper, Parser
 
 
+SEASON = 2021
+
+#@lru_cache
+@pytest.fixture
+def content(test_directory):
+    return json.loads((test_directory / 'testdata' / 'espn.json').read_text())
+
+
 def test_scraper():
-    assert Scraper(2020)
+    assert Scraper(SEASON)
 
 
-def test_playerstats(tprint, raw_directory):
-    season = 2020
-    week = 8
-    s = Scraper(season)
-    p = Parser(season)
-    data = s.playerstats()
-    assert isinstance(data, dict)
-    players = p.weekly_projections(data, week)
-    assert isinstance(players, list)
-    assert isinstance(players[0], dict)
-    tprint(players[0])
-    
+def test_parser():
+    assert Parser(SEASON, 0)
+
+
+def test_season_projections(content, tprint):
+    p = Parser(season=SEASON, week=0)
+    proj = p.projections(content)
+    assert isinstance(proj, list)
+    assert isinstance(proj[0], dict)
+

@@ -82,8 +82,8 @@ class Scraper:
             return r
         return r.json()
 
-    def playerstats(self):
-        """Gets all ESPN player stats and projections """
+    def projections(self):
+        """Gets all ESPN player projections """
         headers = self.default_headers
         return self.get_json(self.api_url, headers=headers, params=self.default_params)
 
@@ -225,27 +225,20 @@ class Parser:
         'WAS': ['WAS', 'Washington Redskins', 'Redskins', 'Washington', 'was']
     }
 
-    def __init__(self, season):
+    def __init__(self, season, week):
         """
             """
         logging.getLogger(__name__).addHandler(logging.NullHandler())
         self.season = season
+        self.week = week
 
-    def _parse_stats(self, stat):
-        """Parses stats dict"""
-        return {
-            self.STAT_MAP.get(str(k)): float(v)
-            for k, v in stat.items()
-            if str(k) in self.STAT_MAP
-        }
-
-    def _find_projection(self, stats, week=None):
+    def _find_projection(self, stats):
         """Simplified way to find projection or result"""
         mapping = {
             "seasonId": self.season,
-            "scoringPeriodId": week if week else 0,
-            "statSourceId": 1 if week else 0,
-            "statSplitTypeId": 1 if week else 0,
+            "scoringPeriodId": self.week,
+            "statSourceId": 1,
+            "statSplitTypeId": 0
         }
 
         for item in stats:
@@ -280,6 +273,14 @@ class Parser:
             return matches[0][0]
         raise ValueError(f'no match for {team}')
 
+    def _parse_stats(self, stat):
+        """Parses stats dict"""
+        return {
+            self.STAT_MAP.get(str(k)): float(v)
+            for k, v in stat.items()
+            if str(k) in self.STAT_MAP
+        }
+
     def espn_team(self, team_code=None, team_id=None):
         """Returns team_id given code or team_code given team_id"""
         if team_code:
@@ -288,7 +289,7 @@ class Parser:
         elif team_id:
             return {v: k for k, v in self.TEAM_MAP.items()}.get(int(team_id))
 
-    def season_projections(self, content):
+    def projections(self, content):
         """Parses the seasonal projections
         
         Args:
@@ -315,8 +316,8 @@ class Parser:
 
             p["source_team_code"] = self.espn_team(team_id=p.get("source_team_id", 0))
 
-            # loop through player stats to find weekly projections
-            stat = self._find_season_projection(player["stats"])
+            # loop through player stats to find projections
+            stat = self._find_projection(player["stats"])
             if stat:
                 p["source_player_projection"] = stat["appliedTotal"]
                 proj.append(dict(**p, **self._parse_stats(stat["stats"])))

@@ -4,70 +4,90 @@ rg.py
 Library to scrape Rotogrinders projections
 
 NOTE: Subscription is required
+You must have firefox installed and have logged in to rotogrinders in that browser + profile
 This library does not access to anything 'extra' that user didn't buy
 It automates projections download for an authorized user (via browser_cookie3)
 
 """
-
+import json
 import logging
+import re
+from typing import Any, Dict, List, Union
 
-from requests_html import HTMLSession
+import requests
+from requests.models import Response
 import browser_cookie3
-import pandas as pd
 
 
 class Scraper:
-    """Scrape RG projections"""
+    """Scrape RG projections
+    
+    
+    Example:
+        params = {
+          'site': 'draftkings', 
+          'slate': '53019', 
+          'projections': 'grid', 
+          'date': '2021-09-12',
+          'post': '2009661'    
+        }
 
-    BASE_URL = 'https://establishtherun.com'
+        s = Scraper()
+        url = self.construct_url(params)
+        content = self.get(url)
 
-    def __init__(self, urls=None, browser_name='chrome'):
+    """
+
+    def __init__(self):
         """Creates Scraper instance"""
-        logging.getLogger(__name__).addHandler(logging.NullHandler())
-        self._s = HTMLSession()
-        if browser_name == 'chrome':
-            self._s.cookies.update(browser_cookie3.chrome())
-        elif browser_name == 'firefox':
-            self._s.cookies.update(browser_cookie3.firefox())
-        else:
-            raise ValueError(f'Invalid browser_name: {browser_name}')
-        if not urls:
-            self.urls = {
-                'all_all': f'{self.BASE_URL}/fantasy-point-projections/',
-                'dk_main': f'{self.BASE_URL}/draftkings-projections/',
-                'fd_main': f'{self.BASE_URL}/fanduel-projections/'
-            }
-        else:
-            self.urls = urls
+        self._s = requests.Session()
+        self._s.cookies.update(browser_cookie3.firefox())
 
-    def get(self, url, headers=None, params=None, return_object=False):
+    def construct_url(self, params: dict) -> str:
+        """Constructs URL given params
+        
+        Args:
+            params (Dict[str, str]): the url parameters
+
+        Returns:
+            str
+
+        """
+        url = 'https://rotogrinders.com/lineuphq/nfl?site={site}&slate={slate}&projections=grid&date={date}&post={post}'
+        return url.format(**params)
+
+
+    def get(self, url: str, headers: dict = None, params: dict = None, return_object: bool = False) -> Union[str, Response]:
         """Gets HTML response"""
         r = self._s.get(url, headers=headers, params=params)
         if return_object:
             return r
         return r.text
 
-    def get_projections(self, site_name='all', slate_name='all'):
-        """Gets projections"""
-        key = f'{site_name}_{slate_name}'
-        url = self.URLS.get(key)
-        if not url:
-            raise ValueError(f'Invalid site or slate: {site_name}, {slate_name}')
-        return self.get(url)
+    def lineuphq_projections(self, params: dict) -> str:
+        """Gets projections given aparms"""
+        return self.get(self.construct_url(params))
 
 
 class Parser:
-    """Parse ETR Projections table"""
+    """Parse projections html
+    
+    Examples:
+        from pathlib import Path
+        from nflprojections.rg import Parser
 
-    def __init__(self):
-        """
-            """
-        logging.getLogger(__name__).addHandler(logging.NullHandler())
+        pth = Path('html_file.html')
+        html = pth.read_text()
+        p = Parser()
+        proj = p.lineuphq_projections(html)
 
-    def projections(self, html):
+    """
+    PROJ_PATT = re.compile(r'selectedExpertPackage: ({.*?],"title":.*?"product_id".*?}),\s+serviceURL') 
+
+    def lineuphq_projections(self, html: str, patt: re.Pattern = PROJ_PATT) -> List[Dict[str, Any]]:
         """Parses projections HTML"""
-        tbl = pd.read_html(html)
-        return tbl[1]
+        match = re.search(patt, html, re.MULTILINE | re.DOTALL)
+        return json.loads(match.group(1))['data']
 
 
 if __name__ == '__main__':

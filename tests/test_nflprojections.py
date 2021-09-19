@@ -4,7 +4,7 @@ from nflschedule.nflschedule import current_season
 import pandas as pd
 import pytest
 
-from nflprojections import ProjectionSource
+from nflprojections.nflprojections import ProjectionSource
 from nflschedule import current_season, current_week
 
 
