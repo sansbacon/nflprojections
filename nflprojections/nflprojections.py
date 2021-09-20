@@ -70,7 +70,8 @@ class ProjectionSource:
         self.slate_name = slate_name
         
         # validate column mappings
-        assert set(column_mapping.values()).issubset(self.REQUIRED_MAPPED_COLUMNS)
+        assert self.REQUIRED_MAPPED_COLUMNS.issubset(set(column_mapping.values()))
+        self.column_mapping = column_mapping
 
         # validate formats
         if raw_format not in self.VALID_FORMATS:
@@ -90,7 +91,7 @@ class ProjectionSource:
 
         """
         parts = [str(self.season), f'w{self.week}', self.projections_name, self.site_name, self.slate_name]
-        return self.procdir / f'{"_".join([str(item) for item in parts])}{self.processed_format}' 
+        return self.procdir / f'{"_".join([str(item) for item in parts])}.{self.processed_format}' 
 
     @property
     def raw_fn(self) -> Path:
@@ -101,7 +102,7 @@ class ProjectionSource:
 
         """
         parts = [str(self.season), f'w{self.week}', self.projections_name, self.site_name, self.slate_name]
-        return self.rawdir / f'raw/{"_".join([str(item) for item in parts])}{self.raw_format}'
+        return self.rawdir / f'raw/{"_".join([str(item) for item in parts])}.{self.raw_format}'
 
     def load_raw(self) -> pd.DataFrame:
         """Loads raw projections file"""
@@ -111,7 +112,7 @@ class ProjectionSource:
         raise NotImplementedError
 
     def remap_columns(self, cols: List[str]) -> List[str]:
-        return [self.column_remap.get(c, c) for c in cols]                        
+        return [self.column_mapping.get(c, c) for c in cols]                        
 
     def standardize(self) -> pd.DataFrame:
         raise NotImplementedError
@@ -125,8 +126,8 @@ class ProjectionSource:
     def standardize_positions(self, positions: Standardized) -> Standardized:
         """Standardizes player positions"""
         if isinstance(positions, (list, tuple, set)):
-            return [nflnames.standardize_player_position(pos) for pos in positions]
-        return positions.apply(nflnames.standardize_player_position)
+            return [nflnames.standardize_positions(pos) for pos in positions]
+        return positions.apply(nflnames.standardize_positions)
 
     def standardize_teams(self, teams: Standardized) -> Standardized:
         """Standardizes team names"""

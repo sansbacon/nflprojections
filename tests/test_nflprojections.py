@@ -19,7 +19,8 @@ def mapping():
       'wk': 'week',
       'player_name': 'plyr',
       'team': 'team',
-      'fppg': 'proj'
+      'fppg': 'proj',
+      'position': 'pos'
     }
 
 
@@ -44,57 +45,76 @@ def ps(psparams):
     
 
 def test_init(psparams):
-    assert isinstance(ProjectionSource, ProjectionSource(**psparams))
+    assert isinstance(ProjectionSource(**psparams), ProjectionSource)
 
 
-"""
-    def load_raw(self) -> pd.DataFrame:       
-    def process_raw(self) -> pd.DataFrame:
-    def remap_columns(self, cols: List[str]) -> List[str]:
-    def standardize(self) -> pd.DataFrame:
-    def standardize_players(self, names: Standardized) -> Standardized:
-    def standardize_positions(self, positions: Standardized) -> Standardized:
-    def standardize_teams(self, teams: Standardized) -> Standardized:
-"""
-
-@pytest.mark.skip
-def test_projection_source(psparams):
-    ps = ProjectionSource(**psparams)
-    assert ps.DEFAULT_COLUMN_MAPPING == {}
+def test_init_missing_param(psparams):
+    with pytest.raises(TypeError):      
+        _ = psparams.pop('rawdir')
+        ps = ProjectionSource(**psparams)
 
 
-@pytest.mark.skip
-def test_make_raw_fn(fixed_psparams):
-    """Tests ps.make_raw_fn()"""
-    ps = ProjectionSource(**fixed_psparams)
-    fn = ps.make_raw_fn()
-    season = fixed_psparams.get('season')
-    week = fixed_psparams.get('week')
-    assert fn.name == f'{season}_w{week}_ps_all_all.csv'
+def test_init_missing_mapping(psparams):
+    with pytest.raises(AssertionError):      
+        _ = psparams['column_mapping'].pop('wk')
+        ps = ProjectionSource(**psparams)
 
 
-@pytest.mark.skip
 def test_load_raw(ps):
-    df = ps.load_raw()
-    assert not df.empty
-    assert 'ID' in df.columns
+    with pytest.raises(NotImplementedError):
+        ps.load_raw()
 
 
-@pytest.mark.skip
+def test_proc_fn(ps, psparams):
+    """Tests ps.processed_fn"""
+    fn = ps.raw_fn
+    season = psparams.get('season')
+    week = psparams.get('week')
+    assert fn.name == f'{season}_w{week}_base_all_all.csv'
+
+
+def test_raw_fn(ps, psparams):
+    """Tests ps.raw_fn"""
+    fn = ps.raw_fn
+    season = psparams.get('season')
+    week = psparams.get('week')
+    assert fn.name == f'{season}_w{week}_base_all_all.csv'
+
+
 def test_remap_columns(ps, mapping):
-    df = ps.load_raw()
-    assert {'player', 'pos', 'team', 'salary'} < set(ps.remap_columns(df, column_remap=mapping))
+    cols = list(mapping.keys())
+    assert set(ps.remap_columns(cols)) == set(mapping.values())
 
 
-@pytest.mark.skip
-def test_standardize_teams(ps, mapping, tprint):
-    df = ps.load_raw()
-    df.columns = ps.remap_columns(df, mapping)
-    assert 'GBP' in df['team'].unique()
-    assert 'KCC' in df['team'].unique()
-    df['team'] = ps.standardize_teams(df['team'])
-    teams = df['team'].unique()
-    assert 'GBP' not in teams
-    assert 'GB' in teams
-    assert 'KCC' not in teams
-    assert 'KC' in teams
+def test_remap_columns_extras(psparams, mapping):
+    newmapping = mapping | {'extra_key': 'extra_value'}
+    psparams['column_mapping'] = newmapping
+    newps = ProjectionSource(**psparams)
+    cols = list(newmapping.keys())
+    assert set(newps.remap_columns(cols)) == set(newmapping.values())
+
+
+def test_standardize(ps):
+    with pytest.raises(NotImplementedError):
+        ps.standardize()
+
+
+def test_standardize_players(ps):
+    """Tests standardize_players"""
+    # def standardize_players(self, names: Standardized) -> Standardized:
+    s = ['Henry Ruggs IV', 'Will Fuller V']
+    assert ps.standardize_players(s) == ['henry ruggs', 'will fuller']
+
+
+def test_standardize_positions(ps):
+    """Tests standardize_positions"""
+    # def standardize_positions(self, positions: Standardized) -> Standardized:
+    positions = ['QB', 'Defense', 'Kicker']
+    assert ps.standardize_positions(positions) == ['QB', 'DST', 'K']
+
+
+def test_standardize_teams(ps):
+    """Tests standardize_teams"""
+    teams = ['KCC', 'GBP', 'LAC']
+    assert ps.standardize_teams(teams) == ['KC', 'GB', 'LAC']
+
