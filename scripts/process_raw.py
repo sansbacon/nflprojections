@@ -1,4 +1,8 @@
-# process_raw.py
+# nflprojections/scripts/process_raw.py
+# -*- coding: utf-8 -*-
+# Copyright (C) 2020 Eric Truett
+# Licensed under the MIT License
+
 import logging
 from pathlib import Path
 
