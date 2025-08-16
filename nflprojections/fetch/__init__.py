@@ -7,10 +7,12 @@
 
 from .base_fetcher import DataSourceFetcher, WebDataFetcher, FileDataFetcher
 from .nflcom_fetcher import NFLComFetcher
+from .espn_fetcher import ESPNFetcher
 
 __all__ = [
     'DataSourceFetcher',
     'WebDataFetcher', 
     'FileDataFetcher',
-    'NFLComFetcher'
+    'NFLComFetcher',
+    'ESPNFetcher'
 ]

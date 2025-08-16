@@ -7,11 +7,13 @@
 
 from .base_parser import DataSourceParser, HTMLTableParser, CSVParser, JSONParser
 from .nflcom_parser import NFLComParser
+from .espn_parser import ESPNParser
 
 __all__ = [
     'DataSourceParser',
     'HTMLTableParser',
     'CSVParser', 
     'JSONParser',
-    'NFLComParser'
+    'NFLComParser',
+    'ESPNParser'
 ]
