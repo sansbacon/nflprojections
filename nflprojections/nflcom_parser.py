@@ -9,8 +9,7 @@ NFL.com specific parser implementation
 
 import logging
 import re
-from typing import Dict, List
-import pandas as pd
+from typing import Dict, List, Any
 from bs4 import BeautifulSoup
 
 from .base_parser import HTMLTableParser
@@ -35,23 +34,23 @@ class NFLComParser(HTMLTableParser):
             **kwargs
         )
     
-    def parse_raw_data(self, raw_data: BeautifulSoup) -> pd.DataFrame:
+    def parse_raw_data(self, raw_data: BeautifulSoup) -> List[Dict[str, Any]]:
         """
-        Parse NFL.com HTML data into DataFrame
+        Parse NFL.com HTML data into list of dictionaries
         
         Args:
             raw_data: BeautifulSoup object with NFL.com HTML
             
         Returns:
-            DataFrame with parsed projection data
+            List of dictionaries with parsed projection data
         """
         projections_data = self._parse_projections_table(raw_data)
         
         if not projections_data:
             logger.warning("No projection data found")
-            return pd.DataFrame()
+            return []
         
-        return pd.DataFrame(projections_data)
+        return projections_data
     
     def _parse_projections_table(self, soup: BeautifulSoup) -> List[Dict]:
         """
@@ -219,24 +218,26 @@ class NFLComParser(HTMLTableParser):
         
         return player_data
     
-    def validate_parsed_data(self, df: pd.DataFrame) -> bool:
+    def validate_parsed_data(self, data: List[Dict[str, Any]]) -> bool:
         """
         Validate that parsed NFL.com data has expected structure
         
         Args:
-            df: Parsed DataFrame
+            data: Parsed list of dictionaries
             
         Returns:
             True if data is valid, False otherwise
         """
-        if df.empty:
+        if not data:
             return False
         
-        # Should have player column at minimum
-        has_players = 'player' in df.columns and not df['player'].isna().all()
+        # Should have player column at minimum in at least one record
+        has_players = any('player' in row and row.get('player') for row in data)
         
         # Should have some numeric data (fantasy points or stats)
-        numeric_cols = df.select_dtypes(include=['number']).columns
-        has_numeric_data = len(numeric_cols) > 0 and not df[numeric_cols].isna().all().all()
+        has_numeric_data = any(
+            any(isinstance(value, (int, float)) for value in row.values())
+            for row in data
+        )
         
         return has_players and has_numeric_data

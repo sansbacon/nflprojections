@@ -8,8 +8,7 @@ Refactored NFL.com projections using functional components
 """
 
 import logging
-from typing import Dict, Optional
-import pandas as pd
+from typing import Dict, Optional, List, Any
 
 from .nflcom_fetcher import NFLComFetcher
 from .nflcom_parser import NFLComParser
@@ -74,15 +73,15 @@ class NFLComProjectionsRefactored:
         self.standardizer = ProjectionStandardizer(
             column_mapping=column_mapping,
             season=season,
-            week=week,
-            use_names=use_names,
-            use_schedule=use_schedule
+            week=week
         )
         
         self.season = self.standardizer.season
         self.week = self.standardizer.week
+        # Store the use_names flag for later use in standardization
+        self.use_names = use_names
     
-    def fetch_projections(self, season: int = None) -> pd.DataFrame:
+    def fetch_projections(self, season: int = None) -> List[Dict[str, Any]]:
         """
         Fetch and parse NFL.com projections using functional components
         
@@ -90,24 +89,24 @@ class NFLComProjectionsRefactored:
             season: Season to fetch (defaults to instance season)
             
         Returns:
-            DataFrame with standardized projections
+            List of dictionaries with standardized projections
         """
         try:
             # Step 1: Fetch raw data
             raw_data = self.fetcher.fetch_raw_data(season=season)
             
             # Step 2: Parse raw data
-            parsed_df = self.parser.parse_raw_data(raw_data)
+            parsed_data = self.parser.parse_raw_data(raw_data)
             
             # Step 3: Standardize parsed data
-            standardized_df = self.standardizer.standardize(parsed_df)
+            standardized_data = self.standardizer.standardize(parsed_data)
             
-            logger.info(f"Successfully processed {len(standardized_df)} projections")
-            return standardized_df
+            logger.info(f"Successfully processed {len(standardized_data)} projections")
+            return standardized_data
             
         except Exception as e:
             logger.error(f"Error processing NFL.com projections: {e}")
-            return pd.DataFrame()
+            return []
     
     def validate_data_pipeline(self) -> Dict[str, bool]:
         """
@@ -137,14 +136,14 @@ class NFLComProjectionsRefactored:
         # Test standardizer
         try:
             # Create dummy data to test standardizer
-            dummy_data = pd.DataFrame([{
+            dummy_data = [{
                 'player': 'Test Player',
                 'position': 'QB',
                 'team': 'KC',
                 'fantasy_points': 20.5
-            }])
+            }]
             standardized = self.standardizer.standardize(dummy_data)
-            results['standardizer_valid'] = not standardized.empty and 'plyr' in standardized.columns
+            results['standardizer_valid'] = len(standardized) > 0 and 'plyr' in standardized[0]
         except Exception as e:
             logger.error(f"Standardizer validation failed: {e}")
             results['standardizer_valid'] = False

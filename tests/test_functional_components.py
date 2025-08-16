@@ -114,11 +114,11 @@ class TestDataSourceParser:
         """Test CSV parser"""
         parser = CSVParser("test_source")
         csv_data = "name,value\nPlayer 1,100\nPlayer 2,200"
-        df = parser.parse_raw_data(csv_data)
+        data = parser.parse_raw_data(csv_data)
         
-        assert len(df) == 2
-        assert list(df.columns) == ["name", "value"]
-        assert parser.validate_parsed_data(df) is True
+        assert len(data) == 2
+        assert list(data[0].keys()) == ["name", "value"]
+        assert parser.validate_parsed_data(data) is True
     
     def test_json_parser_list(self):
         """Test JSON parser with list data"""
@@ -177,18 +177,18 @@ class TestDataStandardizer:
             'week_num': 'week'
         }
         
-        standardizer = ProjectionStandardizer(mapping, use_names=False)
+        standardizer = ProjectionStandardizer(mapping)
         
-        df = pd.DataFrame([{
+        data = [{
             'player_name': 'Test Player',
             'position': 'QB',
             'team_code': 'KC',
             'fantasy_pts': 25.5
-        }])
+        }]
         
-        result = standardizer.remap_columns(df)
+        result = standardizer.remap_columns(data)
         expected_columns = {'plyr', 'pos', 'team', 'proj'}
-        assert expected_columns.issubset(set(result.columns))
+        assert expected_columns.issubset(set(result[0].keys()))
     
     def test_projection_standardizer_standardize(self):
         """Test full standardization process"""
@@ -201,24 +201,24 @@ class TestDataStandardizer:
             'week_num': 'week'
         }
         
-        standardizer = ProjectionStandardizer(mapping, season=2025, week=1, use_names=False)
+        standardizer = ProjectionStandardizer(mapping, season=2025, week=1)
         
-        df = pd.DataFrame([{
+        data = [{
             'player_name': 'Test Player',
             'position': 'QB',
             'team_code': 'KC',
             'fantasy_pts': 25.5
-        }])
+        }]
         
-        result = standardizer.standardize(df)
+        result = standardizer.standardize(data)
         
         # Check all required columns are present
         for col in standardizer.REQUIRED_COLUMNS:
-            assert col in result.columns
+            assert col in result[0]
         
         # Check season and week were added
-        assert result.iloc[0]['season'] == 2025
-        assert result.iloc[0]['week'] == 1
+        assert result[0]['season'] == 2025
+        assert result[0]['week'] == 1
 
 
 class TestProjectionCombiner:
@@ -388,8 +388,8 @@ class TestNFLComRefactored:
         """Test the full data pipeline"""
         # Setup mocks
         mock_fetch.return_value = "mock_html"
-        mock_parse.return_value = pd.DataFrame([{'player': 'Test', 'proj': 20}])
-        mock_standardize.return_value = pd.DataFrame([{'plyr': 'Test', 'proj': 20}])
+        mock_parse.return_value = [{'player': 'Test', 'proj': 20}]
+        mock_standardize.return_value = [{'plyr': 'Test', 'proj': 20}]
         
         nfl = NFLComProjectionsRefactored()
         result = nfl.fetch_projections(season=2025)
@@ -400,4 +400,4 @@ class TestNFLComRefactored:
         mock_standardize.assert_called_once()
         
         assert len(result) == 1
-        assert result.iloc[0]['plyr'] == 'Test'
+        assert result[0]['plyr'] == 'Test'

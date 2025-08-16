@@ -7,7 +7,7 @@
 Classes for combining projections from multiple sources using various algorithms
 """
 
-from typing import Dict, List, Optional, Callable, Tuple
+from typing import Dict, List, Optional, Callable, Tuple, Union, Any
 import pandas as pd
 import numpy as np
 from enum import Enum
@@ -43,7 +43,7 @@ class ProjectionCombiner:
     
     def combine_projections(
         self, 
-        projections: List[pd.DataFrame], 
+        projections: Union[List[pd.DataFrame], List[List[Dict[str, Any]]]], 
         method: Optional[CombinationMethod] = None,
         weights: Optional[Dict[str, float]] = None,
         player_key: str = 'plyr',
@@ -54,7 +54,7 @@ class ProjectionCombiner:
         Combine projections from multiple sources
         
         Args:
-            projections: List of DataFrames with projections
+            projections: List of DataFrames or Lists of dictionaries with projections
             method: Combination method to use (defaults to instance method)
             weights: Weights for weighted average (source_name -> weight)
             player_key: Column name for player identifier
@@ -67,6 +67,16 @@ class ProjectionCombiner:
         if not projections:
             return pd.DataFrame()
         
+        # Convert List[Dict] to DataFrame if needed
+        dataframe_projections = []
+        for proj in projections:
+            if isinstance(proj, list):
+                # Convert list of dictionaries to DataFrame
+                dataframe_projections.append(pd.DataFrame(proj))
+            else:
+                # Already a DataFrame
+                dataframe_projections.append(proj)
+        
         method = method or self.method
         combination_func = self.combination_functions.get(method)
         
@@ -74,7 +84,7 @@ class ProjectionCombiner:
             raise ValueError(f"Unknown combination method: {method}")
         
         # Merge all projections on player key
-        merged = self._merge_projections(projections, player_key, projection_key)
+        merged = self._merge_projections(dataframe_projections, player_key, projection_key)
         
         # Apply combination method
         result = combination_func(merged, weights=weights, **kwargs)
