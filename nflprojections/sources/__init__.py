@@ -8,9 +8,13 @@
 from .projectionsource import ProjectionSource
 from .nflcom import NFLComProjections
 from .nflcom_refactored import NFLComProjectionsRefactored
+from .etr import ETRProjections
+from .etr_refactored import ETRProjectionsRefactored
 
 __all__ = [
     'ProjectionSource',
     'NFLComProjections',
-    'NFLComProjectionsRefactored'
+    'NFLComProjectionsRefactored',
+    'ETRProjections',
+    'ETRProjectionsRefactored'
 ]
