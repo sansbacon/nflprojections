@@ -6,12 +6,10 @@
 # Main high-level APIs - users import specific components from submodules
 from .sources.projectionsource import ProjectionSource
 from .sources.nflcom import NFLComProjections
-from .sources.nflcom_refactored import NFLComProjectionsRefactored
 from .sources.etr import ETRProjections
-from .sources.etr_refactored import ETRProjectionsRefactored
+from .sources.espn import ESPNProjections
 
 from .sources.rotogrinders_refactored import RotogrindersProjections
-from .sources.espn import ESPNProjections, ESPNProjectionsRefactored
 
 from .combine.projectioncombiner import ProjectionCombiner, CombinationMethod
 

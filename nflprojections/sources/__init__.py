@@ -7,19 +7,14 @@
 
 from .projectionsource import ProjectionSource
 from .nflcom import NFLComProjections
-from .nflcom_refactored import NFLComProjectionsRefactored
 from .etr import ETRProjections
-from .etr_refactored import ETRProjectionsRefactored
 from .rotogrinders_refactored import RotogrindersProjections
-from .espn import ESPNProjections, ESPNProjectionsRefactored
+from .espn import ESPNProjections
 
 __all__ = [
     'ProjectionSource',
     'NFLComProjections',
-    'NFLComProjectionsRefactored',
     'ETRProjections',
-    'ETRProjectionsRefactored'
-    'RotogrindersProjections'
+    'RotogrindersProjections',
     'ESPNProjections',
-    'ESPNProjectionsRefactored'
 ]

@@ -163,14 +163,14 @@ standardizer = ProjectionStandardizer(column_mapping, season=2025, week=1)
 final_df = standardizer.standardize(parsed_df)
 ```
 
-### Option 2: Refactored Implementation
+### Option 2: Configured Pipeline
 
-Use the pre-configured refactored class:
+Use the pre-configured class:
 
 ```python
-from nflprojections import NFLComProjectionsRefactored
+from nflprojections import NFLComProjections
 
-nfl_refactored = NFLComProjectionsRefactored(
+nfl = NFLComProjections(
     season=2025,
     week=1, 
     position="1",
@@ -178,14 +178,14 @@ nfl_refactored = NFLComProjectionsRefactored(
 )
 
 # Get projections
-projections = nfl_refactored.fetch_projections()
+projections = nfl.fetch_projections()
 
 # Pipeline information
-pipeline_info = nfl_refactored.get_pipeline_info()
+pipeline_info = nfl.get_pipeline_info()
 print("Pipeline components:", pipeline_info)
 
 # Validation
-validation_results = nfl_refactored.validate_data_pipeline()
+validation_results = nfl.validate_data_pipeline()
 print("Validation:", validation_results)
 ```
 
@@ -335,21 +335,13 @@ final_df = standardizer.standardize(parsed_df)
 
 ## Migration from Original Code
 
-The original `ProjectionSource` and `NFLComProjections` classes are still available for backward compatibility:
+The original `ProjectionSource` class is still available for backward compatibility, but the main projection classes now use the refactored functional architecture:
 
-### Old Way
+### Current Implementation
 ```python
 from nflprojections import NFLComProjections
 
 nfl = NFLComProjections(season=2025, week=1)
-df = nfl.fetch_projections()
-```
-
-### New Way
-```python
-from nflprojections import NFLComProjectionsRefactored
-
-nfl = NFLComProjectionsRefactored(season=2025, week=1)
 df = nfl.fetch_projections()
 
 # Additional benefits: 

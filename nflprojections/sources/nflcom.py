@@ -4,7 +4,7 @@
 # Licensed under the MIT License
 
 """
-Module for parsing NFL.com fantasy football projections
+Module for parsing NFL.com fantasy football projections using refactored functional components
 
 Example usage:
     from nflprojections import NFLComProjections
@@ -27,22 +27,20 @@ Example usage:
 """
 
 import logging
-import re
-from typing import Dict, List, Optional, Union, Any
+from typing import Dict, List, Optional, Any
 
-import requests
-from bs4 import BeautifulSoup
-
-from .projectionsource import ProjectionSource
+from ..fetch.nflcom_fetcher import NFLComFetcher
+from ..parse.nflcom_parser import NFLComParser
+from ..standardize.base_standardizer import ProjectionStandardizer
 
 
 logger = logging.getLogger(__name__)
 
 
-class NFLComProjections(ProjectionSource):
-    """Parser for NFL.com fantasy football projections"""
+class NFLComProjections:
+    """NFL.com projections using functional components architecture"""
     
-    # Column mapping from NFL.com to standardized format
+    # Default column mapping from NFL.com format to standard format
     DEFAULT_COLUMN_MAPPING = {
         'player': 'plyr',
         'position': 'pos', 
@@ -52,212 +50,199 @@ class NFLComProjections(ProjectionSource):
         'week': 'week'
     }
     
-    BASE_URL = "https://fantasy.nfl.com/research/projections"
-    
     def __init__(
         self,
         season: int = None,
         week: int = None,
-        position: str = "0",  # 0 = all positions
+        position: str = "0",
         stat_category: str = "projectedStats",
         stat_type: str = "seasonProjectedStats",
         column_mapping: Dict[str, str] = None,
         use_schedule: bool = True,
-        use_names: bool = True
+        use_names: bool = True,
+        **kwargs
     ):
         """
-        Initialize NFL.com projections parser
+        Initialize NFL.com projections using functional components
         
         Args:
             season: NFL season year
-            week: NFL week number  
+            week: NFL week number
             position: Position filter (0=all, 1=QB, 2=RB, 3=WR, 4=TE, 5=K, 6=DST)
             stat_category: Category of stats to retrieve
             stat_type: Type of stats (season vs weekly)
             column_mapping: Custom column mapping override
             use_schedule: Whether to use nflschedule for current season/week
             use_names: Whether to standardize player/team names
+            **kwargs: Additional configuration for fetcher
         """
-        self.position = position
-        self.stat_category = stat_category
-        self.stat_type = stat_type
-        
-        # Use default column mapping if none provided
-        if column_mapping is None:
-            column_mapping = self.DEFAULT_COLUMN_MAPPING.copy()
-            
-        super().__init__(
-            source_name="nfl.com",
-            column_mapping=column_mapping,
-            slate_name="season",
-            season=season,
-            week=week,
-            use_schedule=use_schedule,
-            use_names=use_names
+        # Initialize fetcher
+        self.fetcher = NFLComFetcher(
+            position=position,
+            stat_category=stat_category,
+            stat_type=stat_type,
+            **kwargs
         )
+        
+        # Initialize parser
+        self.parser = NFLComParser()
+        
+        # Initialize standardizer
+        column_mapping = column_mapping or self.DEFAULT_COLUMN_MAPPING.copy()
+        self.standardizer = ProjectionStandardizer(
+            column_mapping=column_mapping,
+            season=season,
+            week=week
+        )
+        
+        self.season = self.standardizer.season
+        self.week = self.standardizer.week
+        # Store the use_names flag for later use in standardization
+        self.use_names = use_names
     
-    def _build_url(self, season: int = None) -> str:
-        """Build the URL for NFL.com projections"""
-        season = season or self.season or 2025
-        
-        params = {
-            'position': self.position,
-            'statCategory': self.stat_category,
-            'statSeason': season,
-            'statType': self.stat_type
-        }
-        
-        param_str = '&'.join([f"{k}={v}" for k, v in params.items()])
-        return f"{self.BASE_URL}?{param_str}"
-    
-    def _fetch_page(self, url: str) -> BeautifulSoup:
-        """Fetch and parse the NFL.com projections page"""
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        }
-        
-        try:
-            response = requests.get(url, headers=headers, timeout=30)
-            response.raise_for_status()
-            return BeautifulSoup(response.content, 'html.parser')
-        except requests.RequestException as e:
-            logger.error(f"Error fetching NFL.com page: {e}")
-            raise
-    
-    def _parse_projections_table(self, soup: BeautifulSoup) -> List[Dict]:
-        """Parse the projections table from the HTML"""
-        projections = []
-        
-        # Look for the projections table
-        # NFL.com typically uses specific classes or IDs for their tables
-        table = soup.find('table', class_=re.compile(r'projections|stats|fantasy'))
-        
-        if not table:
-            # Try alternative selectors
-            table = soup.find('table')
-            
-        if not table:
-            logger.warning("No projections table found on page")
-            return projections
-            
-        # Parse table headers to understand column structure
-        headers = []
-        header_row = table.find('thead')
-        if header_row:
-            headers = [th.get_text(strip=True).lower() for th in header_row.find_all(['th', 'td'])]
-        
-        # Parse table body
-        tbody = table.find('tbody') or table
-        rows = tbody.find_all('tr')
-        
-        for row in rows:
-            cells = row.find_all(['td', 'th'])
-            if len(cells) < 3:  # Skip header rows or incomplete rows
-                continue
-                
-            player_data = {}
-            
-            # Parse each cell based on position or content
-            for i, cell in enumerate(cells):
-                text = cell.get_text(strip=True)
-                
-                # Extract player name (usually first column or contains player info)
-                if i == 0 or 'player' in headers[i] if i < len(headers) else False:
-                    # Clean player name, removing extra info
-                    player_name = re.sub(r'\s+', ' ', text)
-                    player_name = re.sub(r'\([^)]*\)', '', player_name).strip()
-                    player_data['player'] = player_name
-                    
-                    # Extract position and team from player cell if present
-                    if '-' in text:
-                        parts = text.split('-')
-                        if len(parts) >= 2:
-                            player_data['position'] = parts[-1].strip()
-                            if len(parts) >= 3:
-                                player_data['team'] = parts[-2].strip()
-                
-                # Look for numeric fantasy points projection
-                elif re.match(r'^\d+\.?\d*$', text):
-                    if 'fantasy_points' not in player_data:
-                        player_data['fantasy_points'] = float(text)
-                
-                # Parse specific columns if headers available
-                elif i < len(headers):
-                    header = headers[i]
-                    if 'team' in header and not player_data.get('team'):
-                        player_data['team'] = text
-                    elif 'pos' in header and not player_data.get('position'):
-                        player_data['position'] = text
-                    elif 'point' in header or 'proj' in header:
-                        try:
-                            player_data['fantasy_points'] = float(text)
-                        except ValueError:
-                            pass
-            
-            # Only add if we have minimum required data
-            if player_data.get('player') and player_data.get('fantasy_points') is not None:
-                # Add season and week info
-                player_data['season'] = self.season
-                player_data['week'] = self.week
-                projections.append(player_data)
-        
-        logger.info(f"Parsed {len(projections)} player projections")
-        return projections
-    
-    def fetch_projections(self, season: int = None) -> List[Dict[str, Any]]:
+    def fetch_raw_data(self, season: int = None) -> Any:
         """
-        Fetch and parse NFL.com projections
+        Fetch raw data using the fetcher component
         
         Args:
-            season: Season to fetch (defaults to instance season)
+            season: Season to fetch (uses instance season if not provided)
             
         Returns:
-            List of dictionaries with standardized projections
+            Raw data from NFL.com fetcher
         """
-        url = self._build_url(season)
-        logger.info(f"Fetching projections from: {url}")
-        
-        soup = self._fetch_page(url)
-        projections_data = self._parse_projections_table(soup)
-        
-        if not projections_data:
-            logger.warning("No projection data found")
-            return []
-        
-        # Standardize column names using mapping
-        projections_data = self._remap_columns(projections_data)
-        
-        # Standardize data using base class methods
-        for row in projections_data:
-            if 'plyr' in row and row['plyr']:
-                standardized_names = self.standardize_players([row['plyr']])
-                row['plyr'] = standardized_names[0] if standardized_names else row['plyr']
-            if 'pos' in row and row['pos']:
-                standardized_positions = self.standardize_positions([row['pos']])
-                row['pos'] = standardized_positions[0] if standardized_positions else row['pos']
-            if 'team' in row and row['team']:
-                standardized_teams = self.standardize_teams([row['team']])
-                row['team'] = standardized_teams[0] if standardized_teams else row['team']
-            
-            # Ensure required columns exist
-            for col in self.REQUIRED_MAPPED_COLUMNS:
-                if col not in row:
-                    if col == 'season':
-                        row[col] = self.season
-                    elif col == 'week':
-                        row[col] = self.week
-                    else:
-                        row[col] = None
-        
-        return projections_data
+        if self.fetcher is None:
+            raise ValueError("Fetcher is required for fetch_raw_data")
+        return self.fetcher.fetch_raw_data(season=season)
     
-    def _remap_columns(self, data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Remap columns from source format to standardized format"""
-        result = []
-        for row in data:
-            new_row = {}
-            for key, value in row.items():
-                new_key = self.column_mapping.get(key, key)
-                new_row[new_key] = value
-            result.append(new_row)
-        return result
+    def parse_data(self, raw_data: Any) -> List[Dict[str, Any]]:
+        """
+        Parse raw data using the parser component
+        
+        Args:
+            raw_data: Raw data from NFL.com fetcher
+            
+        Returns:
+            List of dictionaries with parsed player data
+        """
+        if self.parser is None:
+            raise ValueError("Parser is required for parse_data")
+        
+        # Try refactored method first, fallback to legacy if needed
+        if hasattr(self.parser, 'parse_raw_data'):
+            return self.parser.parse_raw_data(raw_data)
+        else:
+            return self.parser.parse(raw_data)
+    
+    def standardize_data(self, parsed_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Standardize parsed data using the standardizer component
+        
+        Args:
+            parsed_data: Parsed data from parser
+            
+        Returns:
+            List of dictionaries with standardized format
+        """
+        if self.standardizer is None:
+            raise ValueError("Standardizer is required for standardize_data")
+        return self.standardizer.standardize(parsed_data)
+    
+    def data_pipeline(self, season: int = None) -> List[Dict[str, Any]]:
+        """
+        Execute the complete data pipeline: fetch -> parse -> standardize
+        
+        Args:
+            season: Season to process (uses instance season if not provided)
+            
+        Returns:
+            List of standardized player projections
+        """
+        logger.info(f"Running NFL.com data pipeline for season {season or self.season}, week {self.week}")
+        
+        # Fetch raw data
+        raw_data = self.fetch_raw_data(season=season)
+        
+        # Parse raw data
+        parsed_data = self.parse_data(raw_data)
+        logger.debug(f"Parsed {len(parsed_data)} player records")
+        
+        # Standardize data
+        standardized_data = self.standardize_data(parsed_data)
+        logger.debug(f"Standardized {len(standardized_data)} player projections")
+        
+        return standardized_data
+
+    def fetch_projections(self, season: int = None) -> List[Dict[str, Any]]:
+        """
+        Fetch and return standardized NFL.com projections
+        
+        Args:
+            season: Season to fetch (uses instance season if not provided)
+            
+        Returns:
+            List of standardized player projections
+        """
+        return self.data_pipeline(season=season)
+    
+    def validate_data_pipeline(self) -> Dict[str, bool]:
+        """
+        Validate that all components of the data pipeline are working
+        
+        Returns:
+            Dictionary with validation results for each component
+        """
+        results = {}
+        
+        # Test fetcher
+        try:
+            results['fetcher_connection'] = self.fetcher.validate_connection()
+        except Exception as e:
+            logger.error(f"Fetcher validation failed: {e}")
+            results['fetcher_connection'] = False
+        
+        # Test parser with minimal fetch
+        try:
+            raw_data = self.fetcher.fetch_raw_data()
+            parsed_data = self.parser.parse_raw_data(raw_data)
+            results['parser_valid'] = self.parser.validate_parsed_data(parsed_data)
+        except Exception as e:
+            logger.error(f"Parser validation failed: {e}")
+            results['parser_valid'] = False
+        
+        # Test standardizer
+        try:
+            # Create dummy data to test standardizer
+            dummy_data = [{
+                'player': 'Test Player',
+                'position': 'QB',
+                'team': 'KC',
+                'fantasy_points': 20.5
+            }]
+            standardized = self.standardizer.standardize(dummy_data)
+            results['standardizer_valid'] = len(standardized) > 0 and 'plyr' in standardized[0]
+        except Exception as e:
+            logger.error(f"Standardizer validation failed: {e}")
+            results['standardizer_valid'] = False
+        
+        return results
+    
+    def get_pipeline_info(self) -> Dict[str, str]:
+        """
+        Get information about the data pipeline components
+        
+        Returns:
+            Dictionary with component information
+        """
+        info = {}
+        if hasattr(self, 'fetcher') and self.fetcher:
+            info['fetcher'] = f"{self.fetcher.__class__.__name__}"
+            
+        if hasattr(self, 'parser') and self.parser:
+            info['parser'] = f"{self.parser.__class__.__name__}"
+            
+        if hasattr(self, 'standardizer') and self.standardizer:
+            info['standardizer'] = f"{self.standardizer.__class__.__name__}"
+            if hasattr(self.standardizer, 'column_mapping'):
+                info['column_mapping'] = str(self.standardizer.column_mapping)
+        
+        return info

@@ -17,7 +17,7 @@ from nflprojections.fetch import DataSourceFetcher, WebDataFetcher, FileDataFetc
 from nflprojections.parse import DataSourceParser, HTMLTableParser, CSVParser, JSONParser, NFLComParser
 from nflprojections.standardize import DataStandardizer, ProjectionStandardizer, StatStandardizer
 from nflprojections.combine import ProjectionCombiner, CombinationMethod
-from nflprojections.sources import NFLComProjectionsRefactored
+from nflprojections.sources import NFLComProjections
 
 
 class TestDataSourceFetcher:
@@ -393,15 +393,15 @@ class TestNFLComComponents:
         assert fetcher.validate_connection() is False
 
 
-class TestNFLComRefactored:
+class TestNFLComProjections:
     """Test the refactored NFLComProjections"""
     
-    @patch('nflprojections.sources.nflcom_refactored.NFLComFetcher')
-    @patch('nflprojections.sources.nflcom_refactored.NFLComParser') 
-    @patch('nflprojections.sources.nflcom_refactored.ProjectionStandardizer')
+    @patch('nflprojections.sources.nflcom.NFLComFetcher')
+    @patch('nflprojections.sources.nflcom.NFLComParser') 
+    @patch('nflprojections.sources.nflcom.ProjectionStandardizer')
     def test_initialization(self, mock_standardizer, mock_parser, mock_fetcher):
         """Test initialization of refactored component"""
-        nfl = NFLComProjectionsRefactored(season=2025, week=1)
+        nfl = NFLComProjections(season=2025, week=1)
         
         # Check that components were initialized
         mock_fetcher.assert_called_once()
@@ -410,7 +410,7 @@ class TestNFLComRefactored:
     
     def test_get_pipeline_info(self):
         """Test pipeline information retrieval"""
-        nfl = NFLComProjectionsRefactored(season=2025, week=1)
+        nfl = NFLComProjections(season=2025, week=1)
         info = nfl.get_pipeline_info()
         
         assert 'fetcher' in info
@@ -419,9 +419,9 @@ class TestNFLComRefactored:
         assert info['season'] == '2025'
         assert info['week'] == '1'
     
-    @patch('nflprojections.sources.nflcom_refactored.NFLComFetcher.fetch_raw_data')
-    @patch('nflprojections.sources.nflcom_refactored.NFLComParser.parse_raw_data')
-    @patch('nflprojections.sources.nflcom_refactored.ProjectionStandardizer.standardize')
+    @patch('nflprojections.sources.nflcom.NFLComFetcher.fetch_raw_data')
+    @patch('nflprojections.sources.nflcom.NFLComParser.parse_raw_data')
+    @patch('nflprojections.sources.nflcom.ProjectionStandardizer.standardize')
     def test_fetch_projections_pipeline(self, mock_standardize, mock_parse, mock_fetch):
         """Test the full data pipeline"""
         # Setup mocks
@@ -429,7 +429,7 @@ class TestNFLComRefactored:
         mock_parse.return_value = [{'player': 'Test', 'proj': 20}]
         mock_standardize.return_value = [{'plyr': 'Test', 'proj': 20}]
         
-        nfl = NFLComProjectionsRefactored()
+        nfl = NFLComProjections()
         result = nfl.fetch_projections(season=2025)
         
         # Check that pipeline was called in order
