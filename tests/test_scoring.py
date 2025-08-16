@@ -120,17 +120,26 @@ class TestScorer:
         result = scorer.calculate_fantasy_points(stats)
         assert result == 16.0  # 3.0 + 4.0 + 2.0 + 6.0 + 1.0
         
-    def test_convert_dataframe_basic(self):
-        """Test basic DataFrame conversion."""
+    def test_convert_data_basic(self):
+        """Test basic data conversion."""
         scorer = Scorer(PPRScoring())
         
-        df = pd.DataFrame({
-            'player': ['Player A', 'Player B'],
-            'passing_yards': [300, 150],
-            'passing_tds': [2, 1],
-            'rushing_yards': [50, 100],
-            'receptions': [5, 8]
-        })
+        data = [
+            {
+                'player': 'Player A',
+                'passing_yards': 300,
+                'passing_tds': 2,
+                'rushing_yards': 50,
+                'receptions': 5
+            },
+            {
+                'player': 'Player B',
+                'passing_yards': 150,
+                'passing_tds': 1,
+                'rushing_yards': 100,
+                'receptions': 8
+            }
+        ]
         
         stat_columns = {
             'pass_yd': 'passing_yards',
@@ -139,32 +148,34 @@ class TestScorer:
             'rec': 'receptions'
         }
         
-        result = scorer.convert_dataframe(df, stat_columns)
+        result = scorer.convert_data(data, stat_columns)
         
         # Check that original columns are preserved
-        assert 'player' in result.columns
-        assert 'passing_yards' in result.columns
+        assert 'player' in result[0]
+        assert 'passing_yards' in result[0]
         
         # Check that fantasy_points column was added
-        assert 'fantasy_points' in result.columns
+        assert 'fantasy_points' in result[0]
         assert len(result) == 2
         
         # Check calculations for first player
         # Player A: (300*0.04) + (2*4.0) + (50*0.1) + (5*1.0) = 12+8+5+5 = 30.0
-        assert result.loc[0, 'fantasy_points'] == pytest.approx(30.0)
+        assert result[0]['fantasy_points'] == pytest.approx(30.0)
         
         # Player B: (150*0.04) + (1*4.0) + (100*0.1) + (8*1.0) = 6+4+10+8 = 28.0  
-        assert result.loc[1, 'fantasy_points'] == pytest.approx(28.0)
+        assert result[1]['fantasy_points'] == pytest.approx(28.0)
         
-    def test_convert_dataframe_missing_columns(self):
-        """Test DataFrame conversion when some stat columns are missing."""
+    def test_convert_data_missing_columns(self):
+        """Test data conversion when some stat columns are missing."""
         scorer = Scorer(StandardScoring())
         
-        df = pd.DataFrame({
-            'player': ['Player A'],
-            'passing_yards': [250]
-            # Missing other stat columns
-        })
+        data = [
+            {
+                'player': 'Player A',
+                'passing_yards': 250
+                # Missing other stat columns
+            }
+        ]
         
         stat_columns = {
             'pass_yd': 'passing_yards',
@@ -172,23 +183,22 @@ class TestScorer:
             'rush_yd': 'rushing_yards'  # This column doesn't exist
         }
         
-        result = scorer.convert_dataframe(df, stat_columns)
+        result = scorer.convert_data(data, stat_columns)
         
         # Should handle missing columns gracefully (treat as 0)
         # Player A: (250*0.04) + (0*4.0) + (0*0.1) = 10.0
-        assert result.loc[0, 'fantasy_points'] == pytest.approx(10.0)
+        assert result[0]['fantasy_points'] == pytest.approx(10.0)
         
-    def test_convert_dataframe_empty_dataframe(self):
-        """Test DataFrame conversion with empty DataFrame."""
+    def test_convert_data_empty_data(self):
+        """Test data conversion with empty data."""
         scorer = Scorer(StandardScoring())
         
-        df = pd.DataFrame()
+        data = []
         stat_columns = {'pass_yd': 'passing_yards'}
         
-        result = scorer.convert_dataframe(df, stat_columns)
+        result = scorer.convert_data(data, stat_columns)
         
         assert len(result) == 0
-        assert 'fantasy_points' in result.columns
         
     def test_get_scoring_rules(self):
         """Test getting scoring rules as dictionary."""

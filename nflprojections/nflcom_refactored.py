@@ -73,13 +73,13 @@ class NFLComProjectionsRefactored:
         self.standardizer = ProjectionStandardizer(
             column_mapping=column_mapping,
             season=season,
-            week=week,
-            use_names=use_names,
-            use_schedule=use_schedule
+            week=week
         )
         
         self.season = self.standardizer.season
         self.week = self.standardizer.week
+        # Store the use_names flag for later use in standardization
+        self.use_names = use_names
     
     def fetch_projections(self, season: int = None) -> List[Dict[str, Any]]:
         """
