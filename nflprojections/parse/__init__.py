@@ -10,6 +10,7 @@ from .nflcom_parser import NFLComParser
 from .etr_parser import ETRParser
 from .rotogrinders_parser import RotogrindersJSONParser
 from .espn_parser import ESPNParser
+from .fantasylife_parser import FantasyLifeParser
 
 __all__ = [
     'DataSourceParser',
@@ -19,5 +20,6 @@ __all__ = [
     'NFLComParser',
     'ETRParser',
     'RotogrindersJSONParser',
-    'ESPNParser'
+    'ESPNParser',
+    'FantasyLifeParser'
 ]

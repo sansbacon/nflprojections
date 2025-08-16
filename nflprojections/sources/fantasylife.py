@@ -1,21 +1,17 @@
-# nflprojections/nflprojections/nflcom.py
+# nflprojections/fantasylife.py
 # -*- coding: utf-8 -*-
-# Copyright (C) 2020 Eric Truett
+# Copyright (C) 2025 Eric Truett
 # Licensed under the MIT License
 
 """
-Module for parsing NFL.com fantasy football projections using refactored functional components
+Module for parsing FantasyLife fantasy football projections using functional components
 
 Example usage:
-    from nflprojections import NFLComProjections
+    from nflprojections import FantasyLifeProjections
     
-    # Fetch all positions for 2025 season
-    nfl = NFLComProjections(season=2025)
-    df = nfl.fetch_projections()
-    
-    # Fetch only quarterbacks
-    qb_nfl = NFLComProjections(season=2025, position="1")
-    qb_df = qb_nfl.fetch_projections()
+    # Fetch projections from CSV file
+    fl = FantasyLifeProjections(file_path="/path/to/fantasy_football_projections.csv")
+    df = fl.fetch_projections()
     
     # The returned DataFrame has standardized columns:
     # - plyr: Player name
@@ -29,63 +25,57 @@ Example usage:
 import logging
 from typing import Dict, List, Optional, Any
 
-from ..fetch.nflcom_fetcher import NFLComFetcher
-from ..parse.nflcom_parser import NFLComParser
+from ..fetch.fantasylife_fetcher import FantasyLifeFetcher
+from ..parse.fantasylife_parser import FantasyLifeParser
 from ..standardize.base_standardizer import ProjectionStandardizer
 
 
 logger = logging.getLogger(__name__)
 
 
-class NFLComProjections:
-    """NFL.com projections using functional components architecture"""
+class FantasyLifeProjections:
+    """FantasyLife projections using functional components architecture"""
     
-    # Default column mapping from NFL.com format to standard format
+    # Default column mapping from FantasyLife CSV format to standard format
     DEFAULT_COLUMN_MAPPING = {
-        'player': 'plyr',
-        'position': 'pos', 
-        'team': 'team',
-        'fantasy_points': 'proj',
-        'season': 'season',
-        'week': 'week'
+        'Player': 'plyr',
+        'Position': 'pos', 
+        'Team': 'team',
+        'Fantasy Points': 'proj',
+        'Season': 'season',
+        'Week': 'week'
     }
     
     def __init__(
         self,
+        file_path: str,
         season: int = None,
         week: int = None,
-        position: str = "0",
-        stat_category: str = "projectedStats",
-        stat_type: str = "seasonProjectedStats",
         column_mapping: Dict[str, str] = None,
         use_schedule: bool = True,
         use_names: bool = True,
         **kwargs
     ):
         """
-        Initialize NFL.com projections using functional components
+        Initialize FantasyLife projections using functional components
         
         Args:
-            season: NFL season year
-            week: NFL week number
-            position: Position filter (0=all, 1=QB, 2=RB, 3=WR, 4=TE, 5=K, 6=DST)
-            stat_category: Category of stats to retrieve
-            stat_type: Type of stats (season vs weekly)
+            file_path: Path to the FantasyLife CSV projection file
+            season: NFL season year (will be inferred from file if not provided)
+            week: NFL week number (will be inferred from file if not provided)
             column_mapping: Custom column mapping override
             use_schedule: Whether to use nflschedule for current season/week
             use_names: Whether to standardize player/team names
-            **kwargs: Additional configuration for fetcher
+            **kwargs: Additional configuration
         """
         # Initialize fetcher
-        self.fetcher = NFLComFetcher(
-            position=position,
-            stat_category=stat_category,
-            stat_type=stat_type,
+        self.fetcher = FantasyLifeFetcher(
+            file_path=file_path,
             **kwargs
         )
         
         # Initialize parser
-        self.parser = NFLComParser()
+        self.parser = FantasyLifeParser()
         
         # Initialize standardizer
         column_mapping = column_mapping or self.DEFAULT_COLUMN_MAPPING.copy()
@@ -99,32 +89,32 @@ class NFLComProjections:
         self.week = self.standardizer.week
         # Store the use_names flag for later use in standardization
         self.use_names = use_names
+        
+        # Store file path for reference
+        self.file_path = file_path
     
     @property
     def column_mapping(self):
         """Backward compatibility property for accessing column mapping"""
         return self.standardizer.column_mapping
     
-    def fetch_raw_data(self, season: int = None) -> Any:
+    def fetch_raw_data(self) -> str:
         """
-        Fetch raw data using the fetcher component
+        Fetch raw CSV data using the fetcher component
         
-        Args:
-            season: Season to fetch (uses instance season if not provided)
-            
         Returns:
-            Raw data from NFL.com fetcher
+            Raw CSV data from FantasyLife file
         """
         if self.fetcher is None:
             raise ValueError("Fetcher is required for fetch_raw_data")
-        return self.fetcher.fetch_raw_data(season=season)
+        return self.fetcher.fetch_raw_data()
     
-    def parse_data(self, raw_data: Any) -> List[Dict[str, Any]]:
+    def parse_data(self, raw_data: str) -> List[Dict[str, Any]]:
         """
-        Parse raw data using the parser component
+        Parse raw CSV data using the parser component
         
         Args:
-            raw_data: Raw data from NFL.com fetcher
+            raw_data: Raw CSV data from FantasyLife fetcher
             
         Returns:
             List of dictionaries with parsed player data
@@ -152,20 +142,17 @@ class NFLComProjections:
             raise ValueError("Standardizer is required for standardize_data")
         return self.standardizer.standardize(parsed_data)
     
-    def data_pipeline(self, season: int = None) -> List[Dict[str, Any]]:
+    def data_pipeline(self) -> List[Dict[str, Any]]:
         """
         Execute the complete data pipeline: fetch -> parse -> standardize
         
-        Args:
-            season: Season to process (uses instance season if not provided)
-            
         Returns:
             List of standardized player projections
         """
-        logger.info(f"Running NFL.com data pipeline for season {season or self.season}, week {self.week}")
+        logger.info(f"Running FantasyLife data pipeline for file: {self.file_path}")
         
         # Fetch raw data
-        raw_data = self.fetch_raw_data(season=season)
+        raw_data = self.fetch_raw_data()
         
         # Parse raw data
         parsed_data = self.parse_data(raw_data)
@@ -177,17 +164,14 @@ class NFLComProjections:
         
         return standardized_data
 
-    def fetch_projections(self, season: int = None) -> List[Dict[str, Any]]:
+    def fetch_projections(self) -> List[Dict[str, Any]]:
         """
-        Fetch and return standardized NFL.com projections
+        Fetch and return standardized FantasyLife projections
         
-        Args:
-            season: Season to fetch (uses instance season if not provided)
-            
         Returns:
             List of standardized player projections
         """
-        return self.data_pipeline(season=season)
+        return self.data_pipeline()
     
     def validate_data_pipeline(self) -> Dict[str, bool]:
         """
@@ -205,28 +189,28 @@ class NFLComProjections:
             logger.error(f"Fetcher validation failed: {e}")
             results['fetcher_connection'] = False
         
-        # Test parser with minimal fetch
-        try:
-            raw_data = self.fetcher.fetch_raw_data()
-            parsed_data = self.parser.parse_raw_data(raw_data)
-            results['parser_valid'] = self.parser.validate_parsed_data(parsed_data)
-        except Exception as e:
-            logger.error(f"Parser validation failed: {e}")
+        # Test parser with sample data if file is accessible
+        if results.get('fetcher_connection', False):
+            try:
+                raw_data = self.fetch_raw_data()
+                parsed_data = self.parse_data(raw_data)
+                results['parser_valid'] = len(parsed_data) > 0
+            except Exception as e:
+                logger.error(f"Parser validation failed: {e}")
+                results['parser_valid'] = False
+        else:
             results['parser_valid'] = False
         
         # Test standardizer
-        try:
-            # Create dummy data to test standardizer
-            dummy_data = [{
-                'player': 'Test Player',
-                'position': 'QB',
-                'team': 'KC',
-                'fantasy_points': 20.5
-            }]
-            standardized = self.standardizer.standardize(dummy_data)
-            results['standardizer_valid'] = len(standardized) > 0 and 'plyr' in standardized[0]
-        except Exception as e:
-            logger.error(f"Standardizer validation failed: {e}")
+        if results.get('parser_valid', False):
+            try:
+                sample_data = [{'Player': 'Test Player', 'Position': 'QB', 'Team': 'TST', 'Fantasy Points': 10.0, 'Season': 2024, 'Week': 1}]
+                standardized = self.standardizer.standardize(sample_data)
+                results['standardizer_valid'] = len(standardized) > 0 and 'plyr' in standardized[0]
+            except Exception as e:
+                logger.error(f"Standardizer validation failed: {e}")
+                results['standardizer_valid'] = False
+        else:
             results['standardizer_valid'] = False
         
         return results
@@ -238,16 +222,11 @@ class NFLComProjections:
         Returns:
             Dictionary with component information
         """
-        info = {}
-        if hasattr(self, 'fetcher') and self.fetcher:
-            info['fetcher'] = f"{self.fetcher.__class__.__name__}"
-            
-        if hasattr(self, 'parser') and self.parser:
-            info['parser'] = f"{self.parser.__class__.__name__}"
-            
-        if hasattr(self, 'standardizer') and self.standardizer:
-            info['standardizer'] = f"{self.standardizer.__class__.__name__}"
-            if hasattr(self.standardizer, 'column_mapping'):
-                info['column_mapping'] = str(self.standardizer.column_mapping)
-        
-        return info
+        return {
+            'fetcher': f"{type(self.fetcher).__name__} (file: {getattr(self.fetcher, 'file_path', 'unknown')})",
+            'parser': type(self.parser).__name__,
+            'standardizer': type(self.standardizer).__name__,
+            'season': str(self.season),
+            'week': str(self.week),
+            'source': 'fantasylife'
+        }
