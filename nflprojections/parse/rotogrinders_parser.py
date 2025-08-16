@@ -23,7 +23,7 @@ class RotogrindersJSONParser(DataSourceParser):
     
     # Regex pattern to extract projections JSON from HTML
     PROJ_PATTERN = re.compile(
-        r'selectedExpertPackage: ({.*?],"title":.*?"product_id".*?}),\s+serviceURL', 
+        r'selectedExpertPackage:\s*({.*?}),?\s*serviceURL', 
         re.MULTILINE | re.DOTALL
     )
     
