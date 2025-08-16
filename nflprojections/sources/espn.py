@@ -4,7 +4,7 @@
 # Licensed under the MIT License
 
 """
-ESPN fantasy projections source implementation
+ESPN fantasy projections source implementation using refactored functional components
 """
 
 import logging
@@ -13,75 +13,12 @@ from typing import Dict, Optional, List, Any
 from ..fetch.espn_fetcher import ESPNFetcher
 from ..parse.espn_parser import ESPNParser
 from ..standardize.base_standardizer import ProjectionStandardizer
-from .projectionsource import ProjectionSource
 
 logger = logging.getLogger(__name__)
 
 
-class ESPNProjections(ProjectionSource):
-    """ESPN fantasy projections using functional component architecture"""
-    
-    # Column mapping from ESPN to standardized format  
-    DEFAULT_COLUMN_MAPPING = {
-        'source_player_position': 'pos',
-        'source_player_projection': 'proj',
-        'source_team_code': 'team',
-        'source_player_name': 'plyr',
-        'season': 'season',  # Will be added by standardizer
-        'week': 'week'       # Will be added by standardizer
-    }
-    
-    def __init__(
-        self,
-        season: int = None,
-        week: int = None,
-        column_mapping: Dict[str, str] = None,
-        use_schedule: bool = True,
-        use_names: bool = True,
-        timeout: int = 30,
-        **kwargs
-    ):
-        """
-        Initialize ESPN projections source
-        
-        Args:
-            season: NFL season year
-            week: NFL week (None for season projections)
-            column_mapping: Custom column mapping 
-            use_schedule: Whether to use schedule data for standardization
-            use_names: Whether to standardize player/team names
-            timeout: Request timeout in seconds
-            **kwargs: Additional configuration
-        """
-        # Use default column mapping if none provided
-        if column_mapping is None:
-            column_mapping = self.DEFAULT_COLUMN_MAPPING.copy()
-        
-        # Create functional components
-        fetcher = ESPNFetcher(season=season or 2025, timeout=timeout)
-        parser = ESPNParser(season=season or 2025, week=week)
-        standardizer = ProjectionStandardizer(
-            column_mapping=column_mapping,
-            season=season,
-            week=week
-        )
-        
-        # Initialize using composed mode of ProjectionSource
-        super().__init__(
-            fetcher=fetcher,
-            parser=parser,
-            standardizer=standardizer,
-            source_name="espn",
-            season=season,
-            week=week,
-            use_schedule=use_schedule,
-            use_names=use_names,
-            **kwargs
-        )
-
-
-class ESPNProjectionsRefactored:
-    """Refactored ESPN projections using separate functional components"""
+class ESPNProjections:
+    """ESPN projections using separate functional components"""
     
     # Default column mapping from ESPN to standardized format
     DEFAULT_COLUMN_MAPPING = {
