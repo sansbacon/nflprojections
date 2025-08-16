@@ -28,9 +28,8 @@ Example usage:
 
 import logging
 import re
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, Any
 
-import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 
@@ -205,7 +204,7 @@ class NFLComProjections(ProjectionSource):
         logger.info(f"Parsed {len(projections)} player projections")
         return projections
     
-    def fetch_projections(self, season: int = None) -> pd.DataFrame:
+    def fetch_projections(self, season: int = None) -> List[Dict[str, Any]]:
         """
         Fetch and parse NFL.com projections
         
@@ -213,7 +212,7 @@ class NFLComProjections(ProjectionSource):
             season: Season to fetch (defaults to instance season)
             
         Returns:
-            DataFrame with standardized projections
+            List of dictionaries with standardized projections
         """
         url = self._build_url(season)
         logger.info(f"Fetching projections from: {url}")
@@ -223,40 +222,42 @@ class NFLComProjections(ProjectionSource):
         
         if not projections_data:
             logger.warning("No projection data found")
-            return pd.DataFrame()
-        
-        # Convert to DataFrame
-        df = pd.DataFrame(projections_data)
+            return []
         
         # Standardize column names using mapping
-        df = self._remap_columns(df)
+        projections_data = self._remap_columns(projections_data)
         
         # Standardize data using base class methods
-        if 'plyr' in df.columns:
-            df['plyr'] = self.standardize_players(df['plyr'])
-        if 'pos' in df.columns:
-            df['pos'] = self.standardize_positions(df['pos'])
-        if 'team' in df.columns:
-            df['team'] = self.standardize_teams(df['team'])
+        for row in projections_data:
+            if 'plyr' in row and row['plyr']:
+                standardized_names = self.standardize_players([row['plyr']])
+                row['plyr'] = standardized_names[0] if standardized_names else row['plyr']
+            if 'pos' in row and row['pos']:
+                standardized_positions = self.standardize_positions([row['pos']])
+                row['pos'] = standardized_positions[0] if standardized_positions else row['pos']
+            if 'team' in row and row['team']:
+                standardized_teams = self.standardize_teams([row['team']])
+                row['team'] = standardized_teams[0] if standardized_teams else row['team']
             
-        # Ensure required columns exist
-        for col in self.REQUIRED_MAPPED_COLUMNS:
-            if col not in df.columns:
-                if col == 'season':
-                    df[col] = self.season
-                elif col == 'week':
-                    df[col] = self.week
-                else:
-                    df[col] = None
+            # Ensure required columns exist
+            for col in self.REQUIRED_MAPPED_COLUMNS:
+                if col not in row:
+                    if col == 'season':
+                        row[col] = self.season
+                    elif col == 'week':
+                        row[col] = self.week
+                    else:
+                        row[col] = None
         
-        return df
+        return projections_data
     
-    def _remap_columns(self, df: pd.DataFrame) -> pd.DataFrame:
+    def _remap_columns(self, data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Remap columns from source format to standardized format"""
-        # Create reverse mapping for columns that exist in the DataFrame
-        column_renames = {}
-        for source_col, target_col in self.column_mapping.items():
-            if source_col in df.columns:
-                column_renames[source_col] = target_col
-        
-        return df.rename(columns=column_renames)
+        result = []
+        for row in data:
+            new_row = {}
+            for key, value in row.items():
+                new_key = self.column_mapping.get(key, key)
+                new_row[new_key] = value
+            result.append(new_row)
+        return result

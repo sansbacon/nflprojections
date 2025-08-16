@@ -8,8 +8,7 @@ Base classes for standardizing data formats across different sources
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, List, Union, Optional, Callable
-import pandas as pd
+from typing import Dict, List, Union, Optional, Callable, Any
 
 
 class DataStandardizer(ABC):
@@ -34,31 +33,38 @@ class DataStandardizer(ABC):
         self.column_mapping = column_mapping
     
     @abstractmethod
-    def standardize(self, df: pd.DataFrame) -> pd.DataFrame:
+    def standardize(self, data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
-        Standardize a DataFrame to common format
+        Standardize a list of dictionaries to common format
         
         Args:
-            df: DataFrame with source-specific columns
+            data: List of dictionaries with source-specific keys
             
         Returns:
-            DataFrame with standardized columns and values
+            List of dictionaries with standardized keys and values
         """
         pass
     
-    def remap_columns(self, df: pd.DataFrame) -> pd.DataFrame:
+    def remap_columns(self, data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
         Remap columns from source format to standardized format
         
         Args:
-            df: DataFrame with source columns
+            data: List of dictionaries with source column names
             
         Returns:
-            DataFrame with standardized column names
+            List of dictionaries with standardized column names
         """
-        return df.rename(columns=self.column_mapping)
+        result = []
+        for row in data:
+            new_row = {}
+            for key, value in row.items():
+                new_key = self.column_mapping.get(key, key)
+                new_row[new_key] = value
+            result.append(new_row)
+        return result
     
-    def standardize_players(self, names: Union[List[str], pd.Series], standardize_player_name: Optional[Callable[[str], str]] = None) -> Union[List[str], pd.Series]:
+    def standardize_players(self, names: List[str], standardize_player_name: Optional[Callable[[str], str]] = None) -> List[str]:
         """
         Standardize player names using provided function
         Args:
@@ -69,11 +75,9 @@ class DataStandardizer(ABC):
         """
         if standardize_player_name is None:
             return names
-        if isinstance(names, (list, tuple, set)):
-            return [standardize_player_name(n) for n in names]
-        return names.apply(standardize_player_name)
+        return [standardize_player_name(n) for n in names]
 
-    def standardize_positions(self, positions: Union[List[str], pd.Series], standardize_position: Optional[Callable[[str], str]] = None) -> Union[List[str], pd.Series]:
+    def standardize_positions(self, positions: List[str], standardize_position: Optional[Callable[[str], str]] = None) -> List[str]:
         """
         Standardize position names using provided function
         Args:
@@ -84,11 +88,9 @@ class DataStandardizer(ABC):
         """
         if standardize_position is None:
             return positions
-        if isinstance(positions, (list, tuple, set)):
-            return [standardize_position(pos) for pos in positions]
-        return positions.apply(standardize_position)
+        return [standardize_position(pos) for pos in positions]
 
-    def standardize_teams(self, teams: Union[List[str], pd.Series], standardize_team_code: Optional[Callable[[str], str]] = None) -> Union[List[str], pd.Series]:
+    def standardize_teams(self, teams: List[str], standardize_team_code: Optional[Callable[[str], str]] = None) -> List[str]:
         """
         Standardize team names/codes using provided function
         Args:
@@ -99,9 +101,7 @@ class DataStandardizer(ABC):
         """
         if standardize_team_code is None:
             return teams
-        if isinstance(teams, (list, tuple, set)):
-            return [standardize_team_code(t) for t in teams]
-        return teams.apply(standardize_team_code)
+        return [standardize_team_code(t) for t in teams]
 
 
 class ProjectionStandardizer(DataStandardizer):
@@ -126,47 +126,51 @@ class ProjectionStandardizer(DataStandardizer):
     
     def standardize(
         self,
-        df: pd.DataFrame,
+        data: List[Dict[str, Any]],
         standardize_player_name: Optional[Callable[[str], str]] = None,
         standardize_position: Optional[Callable[[str], str]] = None,
         standardize_team_code: Optional[Callable[[str], str]] = None
-    ) -> pd.DataFrame:
+    ) -> List[Dict[str, Any]]:
         """
-        Standardize projection DataFrame to common format
+        Standardize projection data to common format
         
         Args:
-            df: DataFrame with source-specific columns
+            data: List of dictionaries with source-specific keys
             standardize_player_name: Function to standardize player names
             standardize_position: Function to standardize positions
             standardize_team_code: Function to standardize team codes
         Returns:
-            DataFrame with standardized columns and values
+            List of dictionaries with standardized keys and values
         """
-        if df.empty:
-            return df
+        if not data:
+            return data
         
         # First remap columns
-        df = self.remap_columns(df)
+        data = self.remap_columns(data)
         
         # Standardize data using provided functions
-        if 'plyr' in df.columns:
-            df['plyr'] = self.standardize_players(df['plyr'], standardize_player_name)
-        if 'pos' in df.columns:
-            df['pos'] = self.standardize_positions(df['pos'], standardize_position)
-        if 'team' in df.columns:
-            df['team'] = self.standardize_teams(df['team'], standardize_team_code)
+        for row in data:
+            if 'plyr' in row and row['plyr'] is not None:
+                if standardize_player_name:
+                    row['plyr'] = standardize_player_name(row['plyr'])
+            if 'pos' in row and row['pos'] is not None:
+                if standardize_position:
+                    row['pos'] = standardize_position(row['pos'])
+            if 'team' in row and row['team'] is not None:
+                if standardize_team_code:
+                    row['team'] = standardize_team_code(row['team'])
             
-        # Ensure required columns exist
-        for col in self.REQUIRED_COLUMNS:
-            if col not in df.columns:
-                if col == 'season' and self.season is not None:
-                    df[col] = self.season
-                elif col == 'week' and self.week is not None:
-                    df[col] = self.week
-                else:
-                    df[col] = None
+            # Ensure required columns exist
+            for col in self.REQUIRED_COLUMNS:
+                if col not in row:
+                    if col == 'season' and self.season is not None:
+                        row[col] = self.season
+                    elif col == 'week' and self.week is not None:
+                        row[col] = self.week
+                    else:
+                        row[col] = None
         
-        return df
+        return data
 
 
 class StatStandardizer(DataStandardizer):
@@ -181,39 +185,48 @@ class StatStandardizer(DataStandardizer):
     
     def standardize(
         self,
-        df: pd.DataFrame,
+        data: List[Dict[str, Any]],
         standardize_player_name: Optional[Callable[[str], str]] = None,
         standardize_position: Optional[Callable[[str], str]] = None,
         standardize_team_code: Optional[Callable[[str], str]] = None
-    ) -> pd.DataFrame:
+    ) -> List[Dict[str, Any]]:
         """
-        Standardize statistical DataFrame to common format
+        Standardize statistical data to common format
         
         Args:
-            df: DataFrame with source-specific statistical columns
+            data: List of dictionaries with source-specific statistical keys
             standardize_player_name: Function to standardize player names
             standardize_position: Function to standardize positions
             standardize_team_code: Function to standardize team codes
         Returns:
-            DataFrame with standardized statistical columns and values
+            List of dictionaries with standardized statistical keys and values
         """
-        if df.empty:
-            return df
+        if not data:
+            return data
         
         # Remap columns
-        df = self.remap_columns(df)
+        data = self.remap_columns(data)
         
         # Standardize player/team data if present using provided functions
-        if 'plyr' in df.columns:
-            df['plyr'] = self.standardize_players(df['plyr'], standardize_player_name)
-        if 'pos' in df.columns:
-            df['pos'] = self.standardize_positions(df['pos'], standardize_position)
-        if 'team' in df.columns:
-            df['team'] = self.standardize_teams(df['team'], standardize_team_code)
+        for row in data:
+            if 'plyr' in row and row['plyr'] is not None:
+                if standardize_player_name:
+                    row['plyr'] = standardize_player_name(row['plyr'])
+            if 'pos' in row and row['pos'] is not None:
+                if standardize_position:
+                    row['pos'] = standardize_position(row['pos'])
+            if 'team' in row and row['team'] is not None:
+                if standardize_team_code:
+                    row['team'] = standardize_team_code(row['team'])
+            
+            # Convert statistical columns to numeric
+            for col in row.keys():
+                if col in self.STAT_COLUMNS:
+                    try:
+                        row[col] = float(row[col]) if row[col] is not None else 0.0
+                    except (ValueError, TypeError):
+                        row[col] = 0.0
         
-        # Convert statistical columns to numeric
-        for col in df.columns:
-            if col in self.STAT_COLUMNS:
-                df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
+        return data
         
         return df

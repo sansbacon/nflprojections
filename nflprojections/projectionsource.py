@@ -5,9 +5,7 @@
 
 import logging
 from pathlib import Path
-from typing import Dict, List, Optional, Union
-
-import pandas as pd
+from typing import Dict, List, Optional, Union, Any
 
 # Optional imports
 try:
@@ -117,7 +115,7 @@ class ProjectionSource:
         # Handle optional name standardization
         self.use_names = use_names and nflnames is not None
 
-    def fetch_projections(self, **kwargs) -> pd.DataFrame:
+    def fetch_projections(self, **kwargs) -> List[Dict[str, Any]]:
         """
         Fetch projections using the composed functional pipeline.
         
@@ -125,7 +123,7 @@ class ProjectionSource:
             **kwargs: Parameters to pass to the fetcher
             
         Returns:
-            DataFrame with standardized projections
+            List of dictionaries with standardized projections
             
         Raises:
             NotImplementedError: If not in composed mode (legacy compatibility)
@@ -147,31 +145,30 @@ class ProjectionSource:
             if hasattr(self.parser, 'parse_raw_data'):
                 parsed_data = self.parser.parse_raw_data(raw_data)
             else:
-                # Handle case where parser returns DataFrame directly
+                # Handle case where parser returns data directly
                 parsed_data = self.parser.parse(raw_data)
             
-            # Convert list of dicts to DataFrame if needed
-            if isinstance(parsed_data, list):
-                parsed_df = pd.DataFrame(parsed_data)
-            else:
-                parsed_df = parsed_data
+            # Ensure parsed data is a list of dictionaries
+            if not isinstance(parsed_data, list):
+                # Assume it's a single record if not a list
+                parsed_data = [parsed_data] if parsed_data else []
             
             # Step 3: Standardize parsed data
             if self.use_names and nflnames:
-                standardized_df = self.standardizer.standardize(
-                    parsed_df,
+                standardized_data = self.standardizer.standardize(
+                    parsed_data,
                     standardize_player_name=nflnames.standardize_player_name,
                     standardize_position=nflnames.standardize_positions,
                     standardize_team_code=nflnames.standardize_team_code
                 )
             else:
-                standardized_df = self.standardizer.standardize(parsed_df)
+                standardized_data = self.standardizer.standardize(parsed_data)
             
-            return standardized_df
+            return standardized_data
             
         except Exception as e:
             logging.error(f"Error in projection pipeline: {e}")
-            return pd.DataFrame()
+            return []
     
     def validate_data_pipeline(self) -> Dict[str, bool]:
         """
@@ -219,14 +216,14 @@ class ProjectionSource:
         if self.standardizer:
             try:
                 # Create dummy data to test standardizer
-                dummy_data = pd.DataFrame([{
+                dummy_data = [{
                     'player': 'Test Player',
                     'position': 'QB',
                     'team': 'KC',
                     'fantasy_points': 20.5
-                }])
+                }]
                 standardized = self.standardizer.standardize(dummy_data)
-                results['standardizer_valid'] = not standardized.empty
+                results['standardizer_valid'] = len(standardized) > 0
             except Exception as e:
                 logging.error(f"Standardizer validation failed: {e}")
                 results['standardizer_valid'] = False
@@ -268,23 +265,17 @@ class ProjectionSource:
         
         return info
 
-    def standardize_players(self, names: Union[List[str], 'pd.Series']) -> Union[List[str], 'pd.Series']:
+    def standardize_players(self, names: List[str]) -> List[str]:
         if not self.use_names:
             return names
-        if isinstance(names, (list, tuple, set)):
-            return [nflnames.standardize_player_name(n) for n in names]
-        return names.apply(nflnames.standardize_player_name)
+        return [nflnames.standardize_player_name(n) for n in names]
 
-    def standardize_positions(self, positions: Union[List[str], 'pd.Series']) -> Union[List[str], 'pd.Series']:
+    def standardize_positions(self, positions: List[str]) -> List[str]:
         if not self.use_names:
             return positions
-        if isinstance(positions, (list, tuple, set)):
-            return [nflnames.standardize_positions(pos) for pos in positions]
-        return positions.apply(nflnames.standardize_positions)
+        return [nflnames.standardize_positions(pos) for pos in positions]
 
-    def standardize_teams(self, teams: Union[List[str], 'pd.Series']) -> Union[List[str], 'pd.Series']:
+    def standardize_teams(self, teams: List[str]) -> List[str]:
         if not self.use_names:
             return teams
-        if isinstance(teams, (list, tuple, set)):
-            return [nflnames.standardize_team_code(t) for t in teams]
-        return teams.apply(nflnames.standardize_team_code)
+        return [nflnames.standardize_team_code(t) for t in teams]

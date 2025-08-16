@@ -7,10 +7,7 @@ from dataclasses import asdict
 import logging
 from pathlib import Path
 import re
-from typing import Dict, List, Optional, Union
-
-import numpy as np
-import pandas as pd
+from typing import Dict, List, Optional, Union, Any
 
 from .scoring_formats import ScoringFormat
 
@@ -40,27 +37,38 @@ class Scorer:
         get_score = self.scoring_format.get_score
         return sum(get_score(stat, value) for stat, value in stats.items())
     
-    def convert_dataframe(self, df: pd.DataFrame, stat_columns: Dict[str, str]) -> pd.DataFrame:
-        """Convert a DataFrame of raw statistics to fantasy points.
+    def convert_data(self, data: List[Dict[str, Any]], stat_columns: Dict[str, str]) -> List[Dict[str, Any]]:
+        """Convert a list of raw statistics dictionaries to fantasy points.
         
         Args:
-            df (pd.DataFrame): DataFrame containing raw statistics.
-            stat_columns (Dict[str, str]): Mapping from scoring rule keys to DataFrame column names.
+            data (List[Dict[str, Any]]): List of dictionaries containing raw statistics.
+            stat_columns (Dict[str, str]): Mapping from scoring rule keys to data column names.
                 
         Returns:
-            pd.DataFrame: The input DataFrame with an additional 'fantasy_points' column.
+            List[Dict[str, Any]]: The input data with an additional 'fantasy_points' field for each record.
             
         Example:
             >>> scoring = ScoringFormats('ppr')
-            >>> df = pd.DataFrame({
-            ...     'player': ['Tom Brady', 'Derrick Henry'],
-            ...     'passing_yards': [300, 0],
-            ...     'passing_tds': [3, 0],
-            ...     'rushing_yards': [10, 150],
-            ...     'rushing_tds': [0, 2],
-            ...     'receptions': [0, 2],
-            ...     'receiving_yards': [0, 20],
-            ... })
+            >>> data = [
+            ...     {
+            ...         'player': 'Tom Brady',
+            ...         'passing_yards': 300,
+            ...         'passing_tds': 3,
+            ...         'rushing_yards': 10,
+            ...         'rushing_tds': 0,
+            ...         'receptions': 0,
+            ...         'receiving_yards': 0,
+            ...     },
+            ...     {
+            ...         'player': 'Derrick Henry',
+            ...         'passing_yards': 0,
+            ...         'passing_tds': 0,
+            ...         'rushing_yards': 150,
+            ...         'rushing_tds': 2,
+            ...         'receptions': 2,
+            ...         'receiving_yards': 20,
+            ...     }
+            ... ]
             >>> stat_columns = {
             ...     'pass_yd': 'passing_yards',
             ...     'pass_td': 'passing_tds',
@@ -69,16 +77,19 @@ class Scorer:
             ...     'rec': 'receptions',
             ...     'rec_yd': 'receiving_yards',
             ... }
-            >>> scoring.convert_dataframe(df, stat_columns)
+            >>> scoring.convert_data(data, stat_columns)
         """
-        def compute_row(row):
+        result = []
+        for row in data:
             stats = {
                 scoring_key: row.get(df_column, 0)
                 for scoring_key, df_column in stat_columns.items()
             }
-            return self.calculate_fantasy_points(stats)
-
-        return df.assign(fantasy_points=lambda x: x.apply(compute_row, axis=1))
+            new_row = row.copy()
+            new_row['fantasy_points'] = self.calculate_fantasy_points(stats)
+            result.append(new_row)
+        
+        return result
     
     def get_scoring_rules(self) -> Dict:
         """Get the current scoring rules as a dictionary.
