@@ -4,15 +4,15 @@ Get up and running with NFLProjections in just a few minutes.
 
 ## Basic Usage
 
-### Using the Refactored Implementation
+### Using the Functional Architecture
 
-The recommended approach is to use the refactored implementation with improved architecture:
+The recommended approach is to use the functional architecture with improved modularity:
 
 ```python
-from nflprojections import NFLComProjectionsRefactored
+from nflprojections import NFLComProjections
 
 # Create NFL.com projections instance
-nfl = NFLComProjectionsRefactored(
+nfl = NFLComProjections(
     season=2025, 
     week=1,
     position="1"  # QB only
@@ -127,10 +127,10 @@ print(f"Standard: {points}, PPR: {ppr_points}")
 The library includes validation and error handling:
 
 ```python
-from nflprojections import NFLComProjectionsRefactored
+from nflprojections import NFLComProjections
 
 try:
-    nfl = NFLComProjectionsRefactored(season=2025, week=1)
+    nfl = NFLComProjections(season=2025, week=1)
     
     # Validate pipeline before fetching
     validation = nfl.validate_data_pipeline()

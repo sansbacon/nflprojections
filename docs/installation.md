@@ -23,7 +23,7 @@ You can verify the installation worked by importing the main components:
 
 ```python
 # Test basic imports
-from nflprojections import NFLComProjections, NFLComProjectionsRefactored
+from nflprojections import NFLComProjections
 from nflprojections import ProjectionCombiner, ProjectionSource
 
 # Test submodule imports

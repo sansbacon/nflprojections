@@ -16,7 +16,7 @@ __all__ = [
     'WebDataFetcher', 
     'FileDataFetcher',
     'NFLComFetcher',
-    'ETRFetcher'
-    'RotogrindersWebFetcher'
+    'ETRFetcher',
+    'RotogrindersWebFetcher',
     'ESPNFetcher'
 ]
