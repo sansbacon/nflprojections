@@ -81,9 +81,45 @@ class NFLComProjectionsRefactored:
         # Store the use_names flag for later use in standardization
         self.use_names = use_names
     
-    def fetch_projections(self, season: int = None) -> List[Dict[str, Any]]:
+    def fetch_raw_data(self, season: int = None) -> Any:
         """
-        Fetch and parse NFL.com projections using functional components
+        Fetch raw data from NFL.com.
+        
+        Args:
+            season: Season to fetch (defaults to instance season)
+            
+        Returns:
+            Raw data from the fetcher
+        """
+        return self.fetcher.fetch_raw_data(season=season)
+    
+    def parse_data(self, raw_data: Any) -> List[Dict[str, Any]]:
+        """
+        Parse raw NFL.com data into structured format.
+        
+        Args:
+            raw_data: Raw data to parse
+            
+        Returns:
+            List of dictionaries with parsed data
+        """
+        return self.parser.parse_raw_data(raw_data)
+    
+    def standardize_data(self, parsed_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Standardize parsed NFL.com data to common format.
+        
+        Args:
+            parsed_data: List of dictionaries with parsed data
+            
+        Returns:
+            List of dictionaries with standardized data
+        """
+        return self.standardizer.standardize(parsed_data)
+    
+    def data_pipeline(self, season: int = None) -> List[Dict[str, Any]]:
+        """
+        Execute the complete data pipeline: fetch -> parse -> standardize.
         
         Args:
             season: Season to fetch (defaults to instance season)
@@ -93,13 +129,13 @@ class NFLComProjectionsRefactored:
         """
         try:
             # Step 1: Fetch raw data
-            raw_data = self.fetcher.fetch_raw_data(season=season)
+            raw_data = self.fetch_raw_data(season=season)
             
             # Step 2: Parse raw data
-            parsed_data = self.parser.parse_raw_data(raw_data)
+            parsed_data = self.parse_data(raw_data)
             
             # Step 3: Standardize parsed data
-            standardized_data = self.standardizer.standardize(parsed_data)
+            standardized_data = self.standardize_data(parsed_data)
             
             logger.info(f"Successfully processed {len(standardized_data)} projections")
             return standardized_data
@@ -107,6 +143,20 @@ class NFLComProjectionsRefactored:
         except Exception as e:
             logger.error(f"Error processing NFL.com projections: {e}")
             return []
+
+    def fetch_projections(self, season: int = None) -> List[Dict[str, Any]]:
+        """
+        Fetch and parse NFL.com projections using functional components.
+        
+        This method is maintained for backward compatibility and delegates to data_pipeline.
+        
+        Args:
+            season: Season to fetch (defaults to instance season)
+            
+        Returns:
+            List of dictionaries with standardized projections
+        """
+        return self.data_pipeline(season=season)
     
     def validate_data_pipeline(self) -> Dict[str, bool]:
         """
