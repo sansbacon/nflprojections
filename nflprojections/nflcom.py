@@ -5,6 +5,25 @@
 
 """
 Module for parsing NFL.com fantasy football projections
+
+Example usage:
+    from nflprojections import NFLComProjections
+    
+    # Fetch all positions for 2025 season
+    nfl = NFLComProjections(season=2025)
+    df = nfl.fetch_projections()
+    
+    # Fetch only quarterbacks
+    qb_nfl = NFLComProjections(season=2025, position="1")
+    qb_df = qb_nfl.fetch_projections()
+    
+    # The returned DataFrame has standardized columns:
+    # - plyr: Player name
+    # - pos: Position  
+    # - team: Team abbreviation
+    # - proj: Fantasy points projection
+    # - season: Season year
+    # - week: Week number
 """
 
 import logging
