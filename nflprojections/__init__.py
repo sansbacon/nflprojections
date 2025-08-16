@@ -8,6 +8,7 @@ from .sources.projectionsource import ProjectionSource
 from .sources.nflcom import NFLComProjections
 from .sources.nflcom_refactored import NFLComProjectionsRefactored
 from .sources.rotogrinders_refactored import RotogrindersProjections
+from .sources.espn import ESPNProjections, ESPNProjectionsRefactored
 from .combine.projectioncombiner import ProjectionCombiner, CombinationMethod
 
 import logging
