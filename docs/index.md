@@ -20,6 +20,17 @@ NFLProjections provides a clean, modular approach to collecting NFL fantasy proj
 - **Reusable**: Mix and match components as needed
 - **Maintainable**: Changes isolated to specific components
 
+## Available Data Sources
+
+The library supports multiple projection sources with a consistent API:
+
+- **NFL.com** (`NFLComProjections`) - Official NFL fantasy projections
+- **ETR** (`ETRProjections`) - Establish The Run projections with flexible scoring options  
+- **ESPN** (`ESPNProjections`) - ESPN fantasy projections
+- **Rotogrinders** (`RotogrindersProjections`) - DFS-focused projections
+
+Each source uses the same functional architecture with separate fetch, parse, and standardize components.
+
 ## Package Organization
 
 The package is organized into logical submodules:
@@ -34,13 +45,13 @@ The package is organized into logical submodules:
 ## Quick Example
 
 ```python
-from nflprojections import NFLComProjectionsRefactored
+from nflprojections import NFLComProjections
 
-# Create refactored NFL.com projections
-nfl = NFLComProjectionsRefactored(season=2025, week=1)
+# Create NFL.com projections
+nfl = NFLComProjections(season=2025, week=1)
 projections = nfl.fetch_projections()
 
-# Get pipeline information
+# Get pipeline information  
 pipeline_info = nfl.get_pipeline_info()
 print("Pipeline:", pipeline_info)
 

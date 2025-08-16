@@ -16,6 +16,21 @@ The parse module converts raw data into structured DataFrames.
       show_root_heading: true
       show_source: false
 
+::: nflprojections.parse.etr_parser.ETRParser
+    options:
+      show_root_heading: true
+      show_source: false
+
+::: nflprojections.parse.espn_parser.ESPNParser
+    options:
+      show_root_heading: true
+      show_source: false
+
+::: nflprojections.parse.rotogrinders_parser.RotogrindersJSONParser
+    options:
+      show_root_heading: true
+      show_source: false
+
 ## Usage Examples
 
 ### Basic Parsing
@@ -34,6 +49,57 @@ df = parser.parse_raw_data(raw_html)
 
 print(f"Parsed {len(df)} rows")
 print("Columns:", df.columns.tolist())
+```
+
+### ETR Parser
+
+```python
+from nflprojections.parse import ETRParser
+from nflprojections.fetch import ETRFetcher
+
+# Get ETR raw data
+fetcher = ETRFetcher(position="rb")
+raw_html = fetcher.fetch_raw_data()
+
+# Parse it
+parser = ETRParser()
+df = parser.parse_raw_data(raw_html)
+
+print(f"Parsed {len(df)} ETR projections")
+```
+
+### ESPN Parser
+
+```python
+from nflprojections.parse import ESPNParser
+from nflprojections.fetch import ESPNFetcher
+
+# Get ESPN raw data
+fetcher = ESPNFetcher()
+raw_data = fetcher.fetch_raw_data(season=2025, week=1)
+
+# Parse it
+parser = ESPNParser()
+df = parser.parse_raw_data(raw_data)
+
+print(f"Parsed {len(df)} ESPN projections")
+```
+
+### Rotogrinders Parser
+
+```python
+from nflprojections.parse import RotogrindersJSONParser
+from nflprojections.fetch import RotogrindersWebFetcher
+
+# Get Rotogrinders raw data
+fetcher = RotogrindersWebFetcher(position="QB")
+raw_html = fetcher.fetch_raw_data(params={'week': 1})
+
+# Parse it
+parser = RotogrindersJSONParser()
+df = parser.parse_raw_data(raw_html)
+
+print(f"Parsed {len(df)} Rotogrinders projections")
 ```
 
 ### Custom Parser Implementation

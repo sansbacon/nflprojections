@@ -17,7 +17,7 @@ __all__ = [
     'CSVParser', 
     'JSONParser',
     'NFLComParser',
-    'ETRParser'
-    'RotogrindersJSONParser'
+    'ETRParser',
+    'RotogrindersJSONParser',
     'ESPNParser'
 ]

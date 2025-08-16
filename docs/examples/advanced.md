@@ -200,7 +200,7 @@ else:
 
 ```python
 from nflprojections.combine import ProjectionCombiner, CombinationMethod
-from nflprojections import NFLComProjectionsRefactored
+from nflprojections import NFLComProjections
 import numpy as np
 
 class AdvancedProjectionCombiner:
@@ -298,7 +298,7 @@ def get_multi_source_projections(season, week):
     """Get projections from multiple sources"""
     
     # NFL.com projections
-    nfl_source = NFLComProjectionsRefactored(season=season, week=week)
+    nfl_source = NFLComProjections(season=season, week=week)
     nfl_projections = nfl_source.fetch_projections()
     
     # ESPN projections (custom pipeline)
@@ -599,7 +599,7 @@ class ProjectionDatabase:
 db = ProjectionDatabase()
 
 # Store projections
-nfl = NFLComProjectionsRefactored(season=2025, week=1)
+nfl = NFLComProjections(season=2025, week=1)
 projections = nfl.fetch_projections()
 db.store_projections(projections, source='nfl')
 

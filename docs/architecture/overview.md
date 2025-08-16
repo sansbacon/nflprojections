@@ -140,9 +140,9 @@ All submodules are included automatically via `find_packages()`, providing:
 For most users, the high-level APIs provide everything needed:
 
 ```python
-from nflprojections import NFLComProjectionsRefactored
+from nflprojections import NFLComProjections
 
-nfl = NFLComProjectionsRefactored(season=2025, week=1)
+nfl = NFLComProjections(season=2025, week=1)
 projections = nfl.fetch_projections()
 ```
 

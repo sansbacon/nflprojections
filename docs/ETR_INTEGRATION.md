@@ -1,8 +1,11 @@
 # ETR (Establish The Run) Integration
 
-This document describes the new ETR (Establish The Run) projection source integration that follows the same functional architecture patterns as the NFL.com implementation.
+This document describes the ETR (Establish The Run) projection source integration that follows the same functional architecture patterns as other sources like NFL.com.
 
-## New Classes
+!!! note "Integration with Main API"
+    ETR projections are fully integrated into the main API. See the [Sources API Reference](api/sources.md) for complete usage examples alongside other projection sources.
+
+## ETR Components
 
 ### ETR Components
 

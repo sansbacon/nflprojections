@@ -354,9 +354,9 @@ When reporting bugs or requesting features:
 Use the pipeline validation features to debug issues:
 
 ```python
-from nflprojections import NFLComProjectionsRefactored
+from nflprojections import NFLComProjections
 
-nfl = NFLComProjectionsRefactored(season=2025, week=1)
+nfl = NFLComProjections(season=2025, week=1)
 
 # Get detailed pipeline info
 info = nfl.get_pipeline_info()

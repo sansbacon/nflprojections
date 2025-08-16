@@ -7,10 +7,10 @@ This page shows common usage patterns for NFLProjections.
 ### Simple Projection Fetching
 
 ```python
-from nflprojections import NFLComProjectionsRefactored
+from nflprojections import NFLComProjections
 
 # Get week 1 projections for all positions
-nfl = NFLComProjectionsRefactored(season=2025, week=1)
+nfl = NFLComProjections(season=2025, week=1)
 projections = nfl.fetch_projections()
 
 print(f"Retrieved {len(projections)} player projections")
@@ -25,9 +25,9 @@ for proj in projections[:5]:
 The projection source steps are now decoupled for better flexibility:
 
 ```python
-from nflprojections import NFLComProjectionsRefactored
+from nflprojections import NFLComProjections
 
-nfl = NFLComProjectionsRefactored(season=2025, week=1)
+nfl = NFLComProjections(season=2025, week=1)
 
 # Step 1: Fetch raw data
 raw_data = nfl.fetch_raw_data(season=2025)
@@ -50,7 +50,7 @@ projections = nfl.data_pipeline(season=2025)
 
 ```python
 # Get only quarterback projections
-qb_nfl = NFLComProjectionsRefactored(
+qb_nfl = NFLComProjections(
     season=2025, 
     week=1, 
     position="1"  # QB position code
@@ -80,7 +80,7 @@ positions = {
 }
 
 # Get RB projections
-rb_nfl = NFLComProjectionsRefactored(season=2025, week=1, position="2")
+rb_nfl = NFLComProjections(season=2025, week=1, position="2")
 rb_projections = rb_nfl.fetch_projections()
 ```
 
@@ -90,7 +90,7 @@ rb_projections = rb_nfl.fetch_projections()
 
 ```python
 # Get all projections
-nfl = NFLComProjectionsRefactored(season=2025, week=1)
+nfl = NFLComProjections(season=2025, week=1)
 all_projections = nfl.fetch_projections()
 
 # Filter by position
@@ -164,10 +164,10 @@ print("Exported projections to JSON and CSV files")
 ### Basic Error Handling
 
 ```python
-from nflprojections import NFLComProjectionsRefactored
+from nflprojections import NFLComProjections
 
 try:
-    nfl = NFLComProjectionsRefactored(season=2025, week=1)
+    nfl = NFLComProjections(season=2025, week=1)
     projections = nfl.fetch_projections()
     print(f"Successfully retrieved {len(projections)} projections")
     
@@ -187,7 +187,7 @@ except Exception as e:
 
 ```python
 # Validate pipeline before fetching
-nfl = NFLComProjectionsRefactored(season=2025, week=1)
+nfl = NFLComProjections(season=2025, week=1)
 
 # Check pipeline components
 validation = nfl.validate_data_pipeline()
@@ -211,7 +211,7 @@ else:
 
 ```python
 # Get detailed pipeline information
-nfl = NFLComProjectionsRefactored(season=2025, week=1)
+nfl = NFLComProjections(season=2025, week=1)
 info = nfl.get_pipeline_info()
 
 print("Pipeline Configuration:")
@@ -245,7 +245,7 @@ def get_cached_projections(season, week, max_age_hours=6):
     
     # Fetch fresh data
     print("Fetching fresh projections")
-    nfl = NFLComProjectionsRefactored(season=season, week=week)
+    nfl = NFLComProjections(season=season, week=week)
     projections = nfl.fetch_projections()
     
     # Cache the results
@@ -269,7 +269,7 @@ def get_multiple_weeks(season, weeks):
     for week in weeks:
         print(f"Fetching week {week}...")
         try:
-            nfl = NFLComProjectionsRefactored(season=season, week=week)
+            nfl = NFLComProjections(season=season, week=week)
             projections = nfl.fetch_projections()
             all_projections[week] = projections
             print(f"  Retrieved {len(projections)} projections")
@@ -291,7 +291,7 @@ weeks_1_4 = get_multiple_weeks(2025, [1, 2, 3, 4])
 import pandas as pd
 
 # Convert to DataFrame
-nfl = NFLComProjectionsRefactored(season=2025, week=1)
+nfl = NFLComProjections(season=2025, week=1)
 projections = nfl.fetch_projections()
 
 df = pd.DataFrame(projections)

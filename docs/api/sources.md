@@ -14,16 +14,26 @@ The sources module provides complete projection sources that combine fetching, p
       show_root_heading: true
       show_source: false
 
-::: nflprojections.sources.nflcom_refactored.NFLComProjectionsRefactored
+::: nflprojections.sources.etr.ETRProjections
+    options:
+      show_root_heading: true
+      show_source: false
+
+::: nflprojections.sources.espn.ESPNProjections
+    options:
+      show_root_heading: true
+      show_source: false
+
+::: nflprojections.sources.rotogrinders_refactored.RotogrindersProjections
     options:
       show_root_heading: true
       show_source: false
 
 ## Usage Examples
 
-### NFLComProjections (Original)
+### NFLComProjections
 
-The original NFL.com projections interface:
+The NFL.com projections interface using functional architecture:
 
 ```python
 from nflprojections import NFLComProjections
@@ -33,27 +43,8 @@ nfl = NFLComProjections(season=2025, week=1)
 projections = nfl.fetch_projections()
 
 # Position-specific
-qb_nfl = NFLComProjections(season=2025, week=1, position="QB")
+qb_nfl = NFLComProjections(season=2025, week=1, position="1")
 qb_projections = qb_nfl.fetch_projections()
-```
-
-### NFLComProjectionsRefactored (Recommended)
-
-The improved refactored implementation with additional features:
-
-```python
-from nflprojections import NFLComProjectionsRefactored
-
-# Create instance
-nfl = NFLComProjectionsRefactored(
-    season=2025, 
-    week=1,
-    position="1",  # QB
-    use_names=False
-)
-
-# Fetch projections
-projections = nfl.fetch_projections()
 
 # Get pipeline information
 info = nfl.get_pipeline_info()
@@ -65,6 +56,53 @@ print("Standardizer:", info['standardizer'])
 validation = nfl.validate_data_pipeline()
 for component, is_valid in validation.items():
     print(f"{component}: {'✓' if is_valid else '✗'}")
+```
+
+### ETRProjections
+
+The ETR (Establish The Run) projections interface:
+
+```python
+from nflprojections import ETRProjections
+
+# Create ETR projections instance
+etr = ETRProjections(season=2024, week=1, position="rb")
+projections = etr.fetch_projections()
+
+# Additional benefits:
+pipeline_info = etr.get_pipeline_info()
+validation = etr.validate_data_pipeline()
+```
+
+### ESPNProjections
+
+The ESPN projections interface:
+
+```python
+from nflprojections import ESPNProjections
+
+# Create ESPN projections instance
+espn = ESPNProjections(season=2025, week=1)
+projections = espn.fetch_projections()
+
+# Get pipeline details
+pipeline_info = espn.get_pipeline_info()
+validation = espn.validate_data_pipeline()
+```
+
+### RotogrindersProjections
+
+The Rotogrinders projections using functional components:
+
+```python  
+from nflprojections import RotogrindersProjections
+
+# Create Rotogrinders projections instance
+rg = RotogrindersProjections(season=2025, week=1)
+projections = rg.fetch_projections()
+
+# Validate pipeline components
+validation = rg.validate_data_pipeline()
 ```
 
 ### ProjectionSource (Flexible)
@@ -84,8 +122,11 @@ source = ProjectionSource(
     standardizer=ProjectionStandardizer({
         'player': 'plyr',
         'position': 'pos',
-        'fantasy_points': 'proj'
-    }),
+        'team': 'team',
+        'fantasy_points': 'proj',
+        'season': 'season',
+        'week': 'week'
+    }, season=2025, week=1),
     season=2025,
     week=1
 )
@@ -125,7 +166,7 @@ All projection sources return data in a standardized format:
 
 ```python
 try:
-    nfl = NFLComProjectionsRefactored(season=2025, week=1)
+    nfl = NFLComProjections(season=2025, week=1)
     
     # Validate before fetching
     validation = nfl.validate_data_pipeline()
@@ -160,17 +201,17 @@ positions = {
     "6": "DEF"
 }
 
-nfl = NFLComProjectionsRefactored(position="2")  # RB only
+nfl = NFLComProjections(position="2")  # RB only
 ```
 
 ### Season and Week
 
 ```python
 # Current season, specific week
-nfl = NFLComProjectionsRefactored(season=2025, week=5)
+nfl = NFLComProjections(season=2025, week=5)
 
 # Season projections (week=None)
-nfl = NFLComProjectionsRefactored(season=2025, week=None)
+nfl = NFLComProjections(season=2025, week=None)
 ```
 
 ### Custom Column Mapping
@@ -183,7 +224,7 @@ custom_mapping = {
     'projected_points': 'proj'
 }
 
-nfl = NFLComProjectionsRefactored(
+nfl = NFLComProjections(
     column_mapping=custom_mapping,
     season=2025,
     week=1
