@@ -88,26 +88,51 @@ graph TD
 
 ## Package Structure
 
+The package is organized into logical submodules for clear separation of concerns:
+
 ```
 nflprojections/
-├── fetch/           # Data fetching components
-│   ├── base_fetcher.py
-│   └── nflcom_fetcher.py
-├── parse/           # Data parsing components
-│   ├── base_parser.py
-│   └── nflcom_parser.py
-├── standardize/     # Data standardization
-│   └── base_standardizer.py
-├── scoring/         # Scoring systems
-│   ├── scoring.py
-│   └── scoring_formats.py
-├── combine/         # Projection combination
-│   └── projectioncombiner.py
-└── sources/         # Complete projection sources
-    ├── projectionsource.py
-    ├── nflcom.py
-    └── nflcom_refactored.py
+├── __init__.py           # Main high-level APIs only
+├── fetch/                # Data fetching components
+│   ├── __init__.py
+│   ├── base_fetcher.py   # Abstract fetcher classes
+│   └── nflcom_fetcher.py # NFL.com specific fetcher
+├── parse/                # Data parsing components
+│   ├── __init__.py
+│   ├── base_parser.py    # Abstract parser classes
+│   └── nflcom_parser.py  # NFL.com specific parser
+├── standardize/          # Data standardization
+│   ├── __init__.py
+│   └── base_standardizer.py # Standardization logic
+├── scoring/              # Scoring systems
+│   ├── __init__.py
+│   ├── scoring.py        # Base scoring functionality
+│   └── scoring_formats.py # Specific scoring formats
+├── combine/              # Projection combination
+│   ├── __init__.py
+│   └── projectioncombiner.py # Combination algorithms
+└── sources/              # Complete projection sources
+    ├── __init__.py
+    ├── projectionsource.py    # Abstract base
+    ├── nflcom.py              # NFL.com implementation
+    └── nflcom_refactored.py   # Refactored NFL.com
 ```
+
+### Package Installation
+
+The package is pip-installable with proper setup.py:
+
+```bash
+pip install -e .              # Development install
+pip install nflprojections    # From PyPI (when published)
+```
+
+All submodules are included automatically via `find_packages()`, providing:
+- ✅ Main high-level APIs available from root package
+- ✅ Organized into 6 logical submodules for better code organization
+- ✅ Clear separation of concerns (fetch, parse, standardize, score, combine, sources)
+- ✅ Pip-installable Python module
+- ✅ Explicit submodule imports for better code organization
 
 ## Usage Patterns
 

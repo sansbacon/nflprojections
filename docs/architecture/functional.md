@@ -1,10 +1,10 @@
 # Functional Architecture
 
-The NFLProjections package uses a functional architecture with clear separation of concerns. This page provides detailed implementation guidance for each component.
+The NFLProjections package uses a functional architecture with clear separation of concerns. This design provides modularity, testability, and extensibility through well-defined component interfaces.
 
 ## Component Details
 
-### 1. Data Source Fetch
+### 1. Data Source Fetch (`base_fetcher.py`)
 
 **Purpose**: Handles retrieving raw data from different sources (web APIs, files, databases)
 
@@ -19,13 +19,13 @@ The NFLProjections package uses a functional architecture with clear separation 
 
 **Example Usage**:
 ```python
-from nflprojections.fetch import NFLComFetcher
+from nflprojections import NFLComFetcher
 
 fetcher = NFLComFetcher(position="1")  # QB only
 raw_html = fetcher.fetch_raw_data(season=2025)
 ```
 
-### 2. Data Source Parse
+### 2. Data Source Parse (`base_parser.py`)
 
 **Purpose**: Handles parsing raw data into structured DataFrames
 
@@ -41,13 +41,13 @@ raw_html = fetcher.fetch_raw_data(season=2025)
 
 **Example Usage**:
 ```python
-from nflprojections.parse import NFLComParser
+from nflprojections import NFLComParser
 
 parser = NFLComParser()
 df = parser.parse_raw_data(raw_html)
 ```
 
-### 3. Standardization
+### 3. Standardization (`base_standardizer.py`)
 
 **Purpose**: Handles converting parsed data to common format across all sources
 
@@ -63,7 +63,7 @@ df = parser.parse_raw_data(raw_html)
 
 **Example Usage**:
 ```python
-from nflprojections.standardize import ProjectionStandardizer
+from nflprojections import ProjectionStandardizer
 
 column_mapping = {
     'player': 'plyr',
@@ -78,7 +78,7 @@ standardizer = ProjectionStandardizer(column_mapping, season=2025, week=1)
 standardized_df = standardizer.standardize(parsed_df)
 ```
 
-### 4. Scoring
+### 4. Scoring (`scoring.py`)
 
 **Purpose**: Handles applying fantasy scoring rules to statistical data
 
@@ -88,51 +88,50 @@ standardized_df = standardizer.standardize(parsed_df)
 
 **Example Usage**:
 ```python
-from nflprojections.scoring import StandardScoring, PPRScoring
+from nflprojections.scoring import Scorer
+from nflprojections.scoring_formats import StandardScoring
 
-# Standard scoring
-standard = StandardScoring()
-points = standard.calculate_points({
-    'passing_yards': 300,
-    'passing_tds': 2,
-    'rushing_yards': 50,
-    'rushing_tds': 1
-})
-
-# PPR scoring
-ppr = PPRScoring()
-ppr_points = ppr.calculate_points({
-    'receptions': 8,
-    'receiving_yards': 120,
-    'receiving_tds': 1
+scorer = Scorer(StandardScoring())
+fantasy_points = scorer.calculate_fantasy_points({
+    'pass_yd': 300,
+    'pass_td': 2,
+    'rush_yd': 50
 })
 ```
 
-### 5. Combining
+### 5. Combining (`projectioncombiner.py`)
 
-**Purpose**: Handles aggregating projections using various algorithms
+**Purpose**: Handles combining projections from multiple sources using various algorithms
 
 **Classes**:
-- `ProjectionCombiner`: Main combination engine
+- `ProjectionCombiner`: Main combiner class
 - `CombinationMethod`: Enum of available methods
+
+**Available Methods**:
+- `AVERAGE`: Simple average of all sources
+- `WEIGHTED_AVERAGE`: Weighted average with custom weights
+- `MEDIAN`: Median value across sources
+- `DROP_HIGH_LOW`: Average after removing highest and lowest
+- `CONFIDENCE_BANDS`: Average with confidence intervals
 
 **Example Usage**:
 ```python
-from nflprojections.combine import ProjectionCombiner, CombinationMethod
+from nflprojections import ProjectionCombiner, CombinationMethod
 
 combiner = ProjectionCombiner()
 
-# Average multiple projections
-combined = combiner.combine(
-    projections_list=[proj1, proj2, proj3],
+# Simple average
+combined = combiner.combine_projections(
+    [source1_df, source2_df, source3_df], 
     method=CombinationMethod.AVERAGE
 )
 
-# Weighted average with custom weights
-weighted = combiner.combine(
-    projections_list=[proj1, proj2, proj3],
+# Weighted average  
+weights = {'source_0': 0.5, 'source_1': 0.3, 'source_2': 0.2}
+combined = combiner.combine_projections(
+    [source1_df, source2_df, source3_df],
     method=CombinationMethod.WEIGHTED_AVERAGE,
-    weights=[0.5, 0.3, 0.2]
+    weights=weights
 )
 ```
 
@@ -143,9 +142,7 @@ weighted = combiner.combine(
 Use components separately for maximum control:
 
 ```python
-from nflprojections.fetch import NFLComFetcher
-from nflprojections.parse import NFLComParser  
-from nflprojections.standardize import ProjectionStandardizer
+from nflprojections import NFLComFetcher, NFLComParser, ProjectionStandardizer
 
 # Step 1: Fetch
 fetcher = NFLComFetcher(position="1", stat_category="projectedStats")
@@ -217,74 +214,120 @@ print(f"Combined {len(combined_projections)} player projections")
 
 ### Option 4: Composed ProjectionSource
 
-Use the flexible ProjectionSource for custom pipelines:
+The `ProjectionSource` class now supports composition of functional components, providing a unified interface for the entire pipeline:
 
 ```python
 from nflprojections import ProjectionSource
-from nflprojections.fetch import NFLComFetcher
-from nflprojections.parse import NFLComParser
-from nflprojections.standardize import ProjectionStandardizer
+from nflprojections import NFLComFetcher, NFLComParser, ProjectionStandardizer
 
-# Create composed projection source
+# Create functional components
+fetcher = NFLComFetcher(position="1")  # QB only
+parser = NFLComParser()
+
+column_mapping = {
+    'player': 'plyr',
+    'position': 'pos',
+    'team': 'team',
+    'fantasy_points': 'proj',
+    'season': 'season',
+    'week': 'week'
+}
+standardizer = ProjectionStandardizer(column_mapping, season=2025, week=1)
+
+# Create composed ProjectionSource
 proj_source = ProjectionSource(
-    fetcher=NFLComFetcher(position="1"),
-    parser=NFLComParser(),
-    standardizer=ProjectionStandardizer({
-        'player': 'plyr',
-        'position': 'pos',
-        'fantasy_points': 'proj'
-    }),
+    fetcher=fetcher,
+    parser=parser,
+    standardizer=standardizer,
     season=2025,
     week=1
 )
 
-# Use like any other projection source
-projections = proj_source.fetch_projections()
+# Execute full pipeline with single method call
+projections_df = proj_source.fetch_projections()
 
-# Get pipeline information and validation
+# Get pipeline information
 pipeline_info = proj_source.get_pipeline_info()
+print("Pipeline components:", pipeline_info)
+
+# Validate pipeline functionality  
 validation_results = proj_source.validate_data_pipeline()
 print("Pipeline validation:", validation_results)
 ```
+
+## Benefits of Functional Architecture
+
+### 1. Separation of Concerns
+- **Fetching**: Handles data source connections and retrieval
+- **Parsing**: Handles data structure interpretation 
+- **Standardizing**: Handles format normalization
+- **Combining**: Handles projection aggregation algorithms
+- Each component has a single, well-defined responsibility
+- Changes to one component don't affect others
+
+### 2. Extensibility
+- Add new data sources by implementing Fetcher + Parser
+- Easy to add new combination algorithms to ProjectionCombiner
+- Easy to customize standardization rules
+- Reuse existing components across different sources
+
+### 3. Testability
+- Each component can be tested independently
+- Mock components can be easily substituted
+- Pipeline validation at each step
+- Clear interfaces make it easy to understand relationships
+
+### 4. Reusability
+- Fetchers can be reused across different parsers
+- Standardizers can be reused across different sources
+- Combiners work with any standardized projection data
+- Components compose together flexibly
+
+### 5. Maintainability
+- Clear interfaces make relationships explicit
+- Configuration is centralized and explicit
+- Easier to debug problems in isolated components
+- Changes to one component don't affect others
+
+### 6. Backward Compatibility
+- Existing code continues to work without changes
+- Migration path available for new functionality
+- No breaking changes to existing APIs
+- Legacy ProjectionSource class maintains full compatibility
 
 ## Adding New Data Sources
 
 To add a new data source, implement a Fetcher + Parser pair:
 
 ```python
-# Step 1: Create custom fetcher
-class CustomFetcher(DataSourceFetcher):
-    def __init__(self, **kwargs):
-        super().__init__("custom_source")
-        # Initialize source-specific parameters
+from nflprojections import WebDataFetcher, HTMLTableParser
+
+class MySourceFetcher(WebDataFetcher):
+    def __init__(self):
+        super().__init__("my_source", "https://my-api.com/data")
     
     def fetch_raw_data(self, **params):
-        # Implement data fetching logic
-        return raw_data
-    
-    def validate_connection(self):
-        # Test if source is accessible
-        return True
+        # Custom fetching logic
+        return super().fetch_raw_data(**params)
 
-# Step 2: Create custom parser  
-class CustomParser(DataSourceParser):
-    def __init__(self):
-        super().__init__("custom_source")
-    
+class MySourceParser(HTMLTableParser):
     def parse_raw_data(self, raw_data):
-        # Parse raw data into DataFrame
-        return parsed_df
+        # Custom parsing logic
+        return super().parse_raw_data(raw_data)
     
     def validate_parsed_data(self, df):
-        # Validate structure
+        # Custom validation logic
         return not df.empty
+```
 
-# Step 3: Use in pipeline
-fetcher = CustomFetcher()
-parser = CustomParser()
-standardizer = ProjectionStandardizer(column_mapping)
+Then use with the standard pipeline:
 
-# Build pipeline
+```python
+fetcher = MySourceFetcher()
+parser = MySourceParser()
+standardizer = ProjectionStandardizer(my_column_mapping, season=2025)
+
+# Execute pipeline
 raw_data = fetcher.fetch_raw_data()
 parsed_df = parser.parse_raw_data(raw_data)
 final_df = standardizer.standardize(parsed_df)
