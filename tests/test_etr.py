@@ -14,7 +14,6 @@ from bs4 import BeautifulSoup
 from nflprojections.fetch.etr_fetcher import ETRFetcher
 from nflprojections.parse.etr_parser import ETRParser
 from nflprojections.sources.etr import ETRProjections
-from nflprojections.sources.etr_refactored import ETRProjectionsRefactored
 
 
 class TestETRFetcher:
@@ -188,12 +187,12 @@ class TestETRProjections:
         assert etr._normalize_header("Proj") == "fantasy_points"
 
 
-class TestETRProjectionsRefactored:
+class TestETRProjections:
     """Test ETR refactored projections class"""
     
     def test_initialization(self):
         """Test that refactored ETR projections initializes correctly"""
-        etr = ETRProjectionsRefactored(
+        etr = ETRProjections(
             season=2024,
             week=1,
             position="wr",
@@ -214,7 +213,7 @@ class TestETRProjectionsRefactored:
     
     def test_get_pipeline_info(self):
         """Test pipeline information"""
-        etr = ETRProjectionsRefactored(season=2024, week=2, position="te")
+        etr = ETRProjections(season=2024, week=2, position="te")
         
         info = etr.get_pipeline_info()
         
@@ -229,7 +228,7 @@ class TestETRProjectionsRefactored:
     
     def test_validate_data_pipeline_standardizer(self):
         """Test standardizer component validation"""
-        etr = ETRProjectionsRefactored()
+        etr = ETRProjections()
         
         # Test just the standardizer component with dummy data
         dummy_data = [{
@@ -254,7 +253,7 @@ class TestETRProjectionsRefactored:
             'week': 'week'
         }
         
-        etr = ETRProjectionsRefactored(column_mapping=custom_mapping)
+        etr = ETRProjections(column_mapping=custom_mapping)
         
         assert etr.standardizer.column_mapping == custom_mapping
 
@@ -301,7 +300,7 @@ class TestETRIntegration:
         mock_get.return_value = mock_response
         
         # Test refactored version
-        etr = ETRProjectionsRefactored(season=2024, week=1)
+        etr = ETRProjections(season=2024, week=1)
         
         # This would normally fetch real data, but we're mocking it
         raw_data = etr.fetch_raw_data()

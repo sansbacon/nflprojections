@@ -13,7 +13,7 @@ from unittest.mock import Mock, patch, MagicMock
 
 from nflprojections.fetch import ESPNFetcher
 from nflprojections.parse import ESPNParser
-from nflprojections.sources import ESPNProjections, ESPNProjectionsRefactored
+from nflprojections.sources import ESPNProjections
 
 
 class TestESPNFetcher:
@@ -196,12 +196,12 @@ class TestESPNParser:
         assert parser._espn_team(team_code="INVALID") is None
 
 
-class TestESPNProjectionsRefactored:
+class TestESPNProjections:
     """Test the refactored ESPN projections class"""
     
-    def test_espn_projections_refactored_initialization(self):
+    def test_espn_projections_initialization(self):
         """Test ESPN projections refactored initialization"""
-        espn = ESPNProjectionsRefactored(season=2025, week=1)
+        espn = ESPNProjections(season=2025, week=1)
         assert espn.season == 2025
         assert espn.week == 1
         assert espn.fetcher.source_name == "espn"
@@ -210,9 +210,9 @@ class TestESPNProjectionsRefactored:
     @patch('nflprojections.fetch.espn_fetcher.ESPNFetcher.fetch_raw_data')
     @patch('nflprojections.parse.espn_parser.ESPNParser.parse_raw_data')
     @patch('nflprojections.standardize.base_standardizer.ProjectionStandardizer.standardize')
-    def test_espn_projections_refactored_data_pipeline(self, mock_standardize, mock_parse, mock_fetch):
+    def test_espn_projections_data_pipeline(self, mock_standardize, mock_parse, mock_fetch):
         """Test complete data pipeline"""
-        espn = ESPNProjectionsRefactored(season=2025, week=1)
+        espn = ESPNProjections(season=2025, week=1)
         
         # Mock data flow
         mock_fetch.return_value = {"players": []}
@@ -227,9 +227,9 @@ class TestESPNProjectionsRefactored:
         mock_parse.assert_called_once()
         mock_standardize.assert_called_once()
     
-    def test_espn_projections_refactored_get_pipeline_info(self):
+    def test_espn_projections_get_pipeline_info(self):
         """Test pipeline info retrieval"""
-        espn = ESPNProjectionsRefactored(season=2025, week=5)
+        espn = ESPNProjections(season=2025, week=5)
         info = espn.get_pipeline_info()
         
         assert "ESPN" in info['source']
