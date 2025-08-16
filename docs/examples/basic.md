@@ -20,6 +20,32 @@ for proj in projections[:5]:
     print(f"{proj['plyr']} ({proj['pos']}): {proj['proj']} pts")
 ```
 
+### Decoupled Data Pipeline Steps
+
+The projection source steps are now decoupled for better flexibility:
+
+```python
+from nflprojections import NFLComProjectionsRefactored
+
+nfl = NFLComProjectionsRefactored(season=2025, week=1)
+
+# Step 1: Fetch raw data
+raw_data = nfl.fetch_raw_data(season=2025)
+print("Raw data fetched")
+
+# Step 2: Parse raw data to structured format  
+parsed_data = nfl.parse_data(raw_data)
+print(f"Parsed {len(parsed_data)} records")
+
+# Step 3: Standardize to common format
+standardized_data = nfl.standardize_data(parsed_data)
+print(f"Standardized {len(standardized_data)} projections")
+
+# Or run the complete pipeline
+projections = nfl.data_pipeline(season=2025)
+# fetch_projections() still works and delegates to data_pipeline()
+```
+
 ### Position-Specific Projections
 
 ```python
