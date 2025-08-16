@@ -212,6 +212,11 @@ class NFLComParser(HTMLTableParser):
             player_info = self._parse_player_info_from_playerstat_text(player_info_text)
             player_data.update(player_info)
             
+            # Try to extract opponent information if present
+            opponent_info = self._extract_opponent_info(container, full_text)
+            if opponent_info:
+                player_data.update(opponent_info)
+            
             # Extract player_id from first span's playerId class
             first_span = spans[0]
             player_id = self._extract_player_id_from_span(first_span)
@@ -221,6 +226,10 @@ class NFLComParser(HTMLTableParser):
             # Extract statistics from all spans
             stats = self._extract_stats_from_playerstat_spans(spans)
             player_data.update(stats)
+            
+            # Add default values for missing stats
+            default_stats = self._add_default_stats(player_data)
+            player_data.update(default_stats)
             
             # Extract fantasy points (usually the last number in the text)
             fantasy_points = self._extract_fantasy_points_from_container(container)
@@ -271,22 +280,22 @@ class NFLComParser(HTMLTableParser):
         # Mapping of statId to stat names - uses consistent naming with scoring formats
         # Based on common NFL fantasy statistics
         stat_id_mapping = {
-            '1': 'pass_cmp',       # Passing completions
+            '1': 'gp',             # Games played
             '2': 'pass_att',       # Passing attempts  
             '3': 'pass_yd',        # Passing yards (singular to match scoring formats)
             '4': 'pass_td',        # Passing touchdowns
             '5': 'pass_int',       # Passing interceptions
             '6': 'rush_att',       # Rushing attempts
             '7': 'rush_yd',        # Rushing yards (singular to match scoring formats)
-            '14': 'rush_td',       # Rushing touchdowns
+            '14': 'rush_yd',       # Rushing yards (alternate mapping)
             '15': 'rush_lng',      # Rushing long
             '20': 'rec',           # Receptions
             '21': 'rec_yd',        # Receiving yards (singular to match scoring formats)
             '22': 'rec_td',        # Receiving touchdowns
             '23': 'rec_lng',       # Receiving long
             '28': 'fumbles',       # Fumbles
-            '29': 'fumble_lost',   # Fumbles lost (matches scoring format naming)
-            '30': 'two_pt',        # Two-point conversions
+            '29': 'fumbles',       # Fumbles (total)
+            '30': 'fum_lost',      # Fumbles lost
             '32': 'targets',       # Targets (receiving)
         }
         
@@ -315,6 +324,55 @@ class NFLComParser(HTMLTableParser):
                         stats[stat_name] = stat_value
                         
         return stats
+    
+    def _add_default_stats(self, player_data: Dict) -> Dict:
+        """Add default values for common fantasy stats that may not be present"""
+        defaults = {
+            'pass_yd': 0,
+            'pass_td': 0,
+            'pass_int': 0,
+            'rush_td': 0,
+            'ret_td': 0,
+            'fum_td': 0,
+            'two_pt': 0,
+        }
+        
+        # Only add defaults for stats that aren't already present
+        result = {}
+        for stat, default_value in defaults.items():
+            if stat not in player_data:
+                result[stat] = default_value
+        
+        return result
+        
+    def _extract_opponent_info(self, container, full_text: str) -> Dict:
+        """Extract opponent information if present in container or nearby elements"""
+        opponent_info = {}
+        
+        # Look for common opponent patterns in the text or nearby elements
+        # Pattern: "vs TEAM", "@TEAM", "vs. TEAM", etc.
+        opponent_patterns = [
+            r'(?:vs\.?\s+|@\s*)([A-Z]{2,3})',  # vs JAX, @JAX, vs. JAX
+            r'(?:against\s+)([A-Z]{2,3})',      # against JAX  
+        ]
+        
+        for pattern in opponent_patterns:
+            match = re.search(pattern, full_text)
+            if match:
+                opponent_info['opponent'] = match.group(1)
+                break
+        
+        # Also check parent/sibling elements for opponent info
+        if not opponent_info.get('opponent'):
+            parent = container.parent if container.parent else container
+            parent_text = parent.get_text()
+            for pattern in opponent_patterns:
+                match = re.search(pattern, parent_text)
+                if match:
+                    opponent_info['opponent'] = match.group(1)
+                    break
+                    
+        return opponent_info
         
     def _extract_fantasy_points_from_container(self, container) -> float:
         """Extract fantasy points from container, excluding span content"""
