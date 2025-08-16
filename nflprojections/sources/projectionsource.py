@@ -115,9 +115,104 @@ class ProjectionSource:
         # Handle optional name standardization
         self.use_names = use_names and nflnames is not None
 
-    def fetch_projections(self, **kwargs) -> List[Dict[str, Any]]:
+    def fetch_raw_data(self, **kwargs) -> Any:
         """
-        Fetch projections using the composed functional pipeline.
+        Fetch raw data from the data source.
+        
+        Args:
+            **kwargs: Parameters to pass to the fetcher
+            
+        Returns:
+            Raw data from the fetcher
+            
+        Raises:
+            NotImplementedError: If not in composed mode
+            ValueError: If fetcher is not available
+        """
+        if not self.composed_mode:
+            raise NotImplementedError(
+                "fetch_raw_data requires composed mode with fetcher component."
+            )
+        
+        if not self.fetcher:
+            raise ValueError("Fetcher is required for fetch_raw_data")
+        
+        return self.fetcher.fetch_raw_data(**kwargs)
+    
+    def parse_data(self, raw_data: Any) -> List[Dict[str, Any]]:
+        """
+        Parse raw data into structured format.
+        
+        Args:
+            raw_data: Raw data to parse
+            
+        Returns:
+            List of dictionaries with parsed data
+            
+        Raises:
+            NotImplementedError: If not in composed mode
+            ValueError: If parser is not available
+        """
+        if not self.composed_mode:
+            raise NotImplementedError(
+                "parse_data requires composed mode with parser component."
+            )
+        
+        if not self.parser:
+            raise ValueError("Parser is required for parse_data")
+        
+        # Parse raw data
+        if hasattr(self.parser, 'parse_raw_data'):
+            parsed_data = self.parser.parse_raw_data(raw_data)
+        else:
+            # Handle case where parser returns data directly
+            parsed_data = self.parser.parse(raw_data)
+        
+        # Ensure parsed data is a list of dictionaries
+        if not isinstance(parsed_data, list):
+            # Assume it's a single record if not a list
+            parsed_data = [parsed_data] if parsed_data else []
+        
+        return parsed_data
+    
+    def standardize_data(self, parsed_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Standardize parsed data to common format.
+        
+        Args:
+            parsed_data: List of dictionaries with parsed data
+            
+        Returns:
+            List of dictionaries with standardized data
+            
+        Raises:
+            NotImplementedError: If not in composed mode
+            ValueError: If standardizer is not available
+        """
+        if not self.composed_mode:
+            raise NotImplementedError(
+                "standardize_data requires composed mode with standardizer component."
+            )
+        
+        if not self.standardizer:
+            raise ValueError("Standardizer is required for standardize_data")
+        
+        # Standardize parsed data
+        if self.use_names and nflnames:
+            standardized_data = self.standardizer.standardize(
+                parsed_data,
+                standardize_player_name=nflnames.standardize_player_name,
+                standardize_position=nflnames.standardize_positions,
+                standardize_team_code=nflnames.standardize_team_code
+            )
+        else:
+            standardized_data = self.standardizer.standardize(parsed_data)
+        
+        return standardized_data
+    
+    def data_pipeline(self, **kwargs) -> List[Dict[str, Any]]:
+        """
+        Execute the complete data pipeline: fetch -> parse -> standardize.
         
         Args:
             **kwargs: Parameters to pass to the fetcher
@@ -130,45 +225,45 @@ class ProjectionSource:
         """
         if not self.composed_mode:
             raise NotImplementedError(
-                "fetch_projections requires composed mode with fetcher, parser, and standardizer. "
+                "data_pipeline requires composed mode with fetcher, parser, and standardizer. "
                 "For legacy mode, this method should be implemented by subclasses."
             )
         
         if not all([self.fetcher, self.parser, self.standardizer]):
-            raise ValueError("Fetcher, parser, and standardizer are all required for fetch_projections")
+            raise ValueError("Fetcher, parser, and standardizer are all required for data_pipeline")
         
         try:
             # Step 1: Fetch raw data
-            raw_data = self.fetcher.fetch_raw_data(**kwargs)
+            raw_data = self.fetch_raw_data(**kwargs)
             
             # Step 2: Parse raw data
-            if hasattr(self.parser, 'parse_raw_data'):
-                parsed_data = self.parser.parse_raw_data(raw_data)
-            else:
-                # Handle case where parser returns data directly
-                parsed_data = self.parser.parse(raw_data)
-            
-            # Ensure parsed data is a list of dictionaries
-            if not isinstance(parsed_data, list):
-                # Assume it's a single record if not a list
-                parsed_data = [parsed_data] if parsed_data else []
+            parsed_data = self.parse_data(raw_data)
             
             # Step 3: Standardize parsed data
-            if self.use_names and nflnames:
-                standardized_data = self.standardizer.standardize(
-                    parsed_data,
-                    standardize_player_name=nflnames.standardize_player_name,
-                    standardize_position=nflnames.standardize_positions,
-                    standardize_team_code=nflnames.standardize_team_code
-                )
-            else:
-                standardized_data = self.standardizer.standardize(parsed_data)
+            standardized_data = self.standardize_data(parsed_data)
             
             return standardized_data
             
         except Exception as e:
             logging.error(f"Error in projection pipeline: {e}")
             return []
+
+    def fetch_projections(self, **kwargs) -> List[Dict[str, Any]]:
+        """
+        Fetch projections using the composed functional pipeline.
+        
+        This method is maintained for backward compatibility and delegates to data_pipeline.
+        
+        Args:
+            **kwargs: Parameters to pass to the fetcher
+            
+        Returns:
+            List of dictionaries with standardized projections
+            
+        Raises:
+            NotImplementedError: If not in composed mode (legacy compatibility)
+        """
+        return self.data_pipeline(**kwargs)
     
     def validate_data_pipeline(self) -> Dict[str, bool]:
         """
