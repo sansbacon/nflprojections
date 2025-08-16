@@ -134,6 +134,13 @@ class NFLComParser(HTMLTableParser):
         """Try alternative parsing methods for NFL.com data"""
         projections = []
         
+        # First try to parse the new NFL.com structure with playerStat spans
+        playerstat_data = self._parse_playerstat_structure(soup)
+        if playerstat_data:
+            projections.extend(playerstat_data)
+            # If we found playerstat data, return early to avoid duplication
+            return projections
+        
         # Look for divs or other structures containing player data
         player_elements = soup.find_all(['div', 'tr'], class_=re.compile(r'player|row'))
         
@@ -159,6 +166,263 @@ class NFLComParser(HTMLTableParser):
                 projections.append(player_data)
         
         return projections
+    
+    def _parse_playerstat_structure(self, soup: BeautifulSoup) -> List[Dict]:
+        """
+        Parse NFL.com structure with playerStat spans containing statId and playerId
+        
+        Args:
+            soup: BeautifulSoup object containing HTML with playerStat spans
+            
+        Returns:
+            List of dictionaries with parsed player data including player_id and mapped stats
+        """
+        projections = []
+        
+        # Find all elements that contain playerStat spans
+        containers = soup.find_all(lambda tag: tag.find_all('span', class_=lambda x: x and 'playerStat' in x))
+        
+        for container in containers:
+            player_data = {}
+            
+            # Extract text content before any spans (contains player name, position, team)
+            spans = container.find_all('span', class_=lambda x: x and 'playerStat' in x)
+            if not spans:
+                continue
+                
+            # Get all text content
+            full_text = container.get_text(strip=True)
+            
+            # Extract player information from text (before stat values)
+            # Remove all span content to get just the player info and fantasy points
+            temp_container = BeautifulSoup(str(container), 'html.parser')
+            for span in temp_container.find_all('span'):
+                span.decompose()
+            remaining_text = temp_container.get_text(strip=True)
+            
+            # Split on fantasy points (decimal numbers) to separate player info
+            import re
+            parts = re.split(r'\d+\.\d+', remaining_text)
+            if parts:
+                player_info_text = parts[0].strip()
+            else:
+                player_info_text = remaining_text
+            
+            # Parse player name, position, team from the remaining text
+            player_info = self._parse_player_info_from_playerstat_text(player_info_text)
+            player_data.update(player_info)
+            
+            # Try to extract opponent information if present
+            opponent_info = self._extract_opponent_info(container, full_text)
+            if opponent_info:
+                player_data.update(opponent_info)
+            
+            # Extract player_id from first span's playerId class
+            first_span = spans[0]
+            player_id = self._extract_player_id_from_span(first_span)
+            if player_id:
+                player_data['player_id'] = f"player-{player_id}"
+            
+            # Extract statistics from all spans
+            stats = self._extract_stats_from_playerstat_spans(spans)
+            player_data.update(stats)
+            
+            # Add default values for missing stats
+            default_stats = self._add_default_stats(player_data)
+            player_data.update(default_stats)
+            
+            # Extract fantasy points (usually the last number in the text)
+            fantasy_points = self._extract_fantasy_points_from_container(container)
+            if fantasy_points is not None:
+                player_data['fantasy_points'] = fantasy_points
+            
+            if player_data.get('player') or player_data.get('player_id'):
+                projections.append(player_data)
+        
+        return projections
+    
+    def _parse_player_info_from_playerstat_text(self, text: str) -> Dict:
+        """Parse player name, position, team from text before playerStat spans"""
+        player_data = {}
+        
+        if not text:
+            return player_data
+            
+        # Clean up the text - remove extra whitespace and periods
+        cleaned_text = re.sub(r'\s+', ' ', text.strip())
+        cleaned_text = re.sub(r'\.+$', '', cleaned_text)  # Remove trailing periods
+        
+        # Remove opponent information (vs TEAM, @TEAM, etc.) from the text
+        cleaned_text = re.sub(r'\s+(?:vs\.?\s+|@\s*)([A-Z]{2,3}).*$', '', cleaned_text)
+        
+        # Try to match patterns like "Brian Thomas Jr. WR JAX" or "Player Name POS TEAM"
+        # Pattern: Name ending with position and team
+        pattern = r'^(.+?)\s+([A-Z]{1,3})\s+([A-Z]{2,3})$'
+        match = re.match(pattern, cleaned_text)
+        if match:
+            player_data['player'] = match.group(1).strip()
+            player_data['position'] = match.group(2).strip() 
+            player_data['team'] = match.group(3).strip()
+            return player_data
+            
+        # Fallback: use the existing player info parser
+        return self._parse_player_info(cleaned_text)
+    
+    def _extract_player_id_from_span(self, span) -> str:
+        """Extract player ID from playerId class in span"""
+        classes = span.get('class', [])
+        for cls in classes:
+            if cls.startswith('playerId-'):
+                return cls.split('playerId-')[1]
+        return None
+        
+    def _extract_stats_from_playerstat_spans(self, spans) -> Dict:
+        """Extract and map statistics from playerStat spans using statId"""
+        stats = {}
+        
+        # Mapping of statId to stat names - uses consistent naming with scoring formats
+        # Based on common NFL fantasy statistics
+        stat_id_mapping = {
+            '1': 'gp',             # Games played
+            '2': 'pass_att',       # Passing attempts  
+            '3': 'pass_yd',        # Passing yards (singular to match scoring formats)
+            '4': 'pass_td',        # Passing touchdowns
+            '5': 'pass_int',       # Passing interceptions
+            '6': 'rush_att',       # Rushing attempts
+            '7': 'rush_yd',        # Rushing yards (singular to match scoring formats)
+            '14': 'rush_yd',       # Rushing yards (alternate mapping)
+            '15': 'rush_lng',      # Rushing long
+            '20': 'rec',           # Receptions
+            '21': 'rec_yd',        # Receiving yards (singular to match scoring formats)
+            '22': 'rec_td',        # Receiving touchdowns
+            '23': 'rec_lng',       # Receiving long
+            '28': 'fumbles',       # Fumbles
+            '29': 'fumbles',       # Fumbles (total)
+            '30': 'fum_lost',      # Fumbles lost
+            '32': 'targets',       # Targets (receiving)
+        }
+        
+        for span in spans:
+            # Extract statId from classes
+            stat_id = None
+            classes = span.get('class', [])
+            for cls in classes:
+                if cls.startswith('statId-'):
+                    stat_id = cls.split('statId-')[1]
+                    break
+                    
+            if stat_id and stat_id in stat_id_mapping:
+                stat_name = stat_id_mapping[stat_id]
+                stat_value = span.get_text(strip=True)
+                
+                # Only add non-empty values
+                if stat_value:
+                    try:
+                        # Try to convert to number if it looks like one
+                        if re.match(r'^\d+\.?\d*$', stat_value):
+                            stats[stat_name] = float(stat_value) if '.' in stat_value else int(stat_value)
+                        else:
+                            stats[stat_name] = stat_value
+                    except ValueError:
+                        stats[stat_name] = stat_value
+                        
+        return stats
+    
+    def _add_default_stats(self, player_data: Dict) -> Dict:
+        """Add default values for common fantasy stats that may not be present"""
+        defaults = {
+            'pass_yd': 0,
+            'pass_td': 0,
+            'pass_int': 0,
+            'rush_td': 0,
+            'ret_td': 0,
+            'fum_td': 0,
+            'two_pt': 0,
+        }
+        
+        # Only add defaults for stats that aren't already present
+        result = {}
+        for stat, default_value in defaults.items():
+            if stat not in player_data:
+                result[stat] = default_value
+        
+        return result
+        
+    def _extract_opponent_info(self, container, full_text: str) -> Dict:
+        """Extract opponent information if present in container or nearby elements"""
+        opponent_info = {}
+        
+        # Look for common opponent patterns in the text or nearby elements
+        # Pattern: "vs TEAM", "@TEAM", "vs. TEAM", etc.
+        opponent_patterns = [
+            r'(?:vs\.?\s+|@\s*)([A-Z]{2,3})',  # vs JAX, @JAX, vs. JAX
+            r'(?:against\s+)([A-Z]{2,3})',      # against JAX  
+        ]
+        
+        for pattern in opponent_patterns:
+            match = re.search(pattern, full_text)
+            if match:
+                opponent_info['opp'] = match.group(1)
+                break
+        
+        # Also check parent/sibling elements for opponent info
+        if not opponent_info.get('opp'):
+            parent = container.parent if container.parent else container
+            parent_text = parent.get_text()
+            for pattern in opponent_patterns:
+                match = re.search(pattern, parent_text)
+                if match:
+                    opponent_info['opp'] = match.group(1)
+                    break
+                    
+        return opponent_info
+        
+    def _extract_fantasy_points_from_container(self, container) -> float:
+        """Extract fantasy points from container, excluding span content"""
+        # Create a copy and remove all spans to get just the fantasy points
+        temp_container = BeautifulSoup(str(container), 'html.parser')
+        for span in temp_container.find_all('span'):
+            span.decompose()
+        
+        # Get the remaining text and look for decimal numbers
+        remaining_text = temp_container.get_text().strip()
+        
+        # Find decimal numbers in the remaining text (more permissive pattern)
+        numbers = re.findall(r'\d+\.\d+', remaining_text)
+        if numbers:
+            try:
+                return float(numbers[-1])  # Take the last decimal number
+            except ValueError:
+                pass
+                
+        return None
+    
+    def _extract_fantasy_points_from_text(self, text: str) -> float:
+        """Extract fantasy points from the end of text (after all spans)"""
+        # Split the text and look for the last standalone decimal number
+        # The fantasy points should be at the very end, not concatenated with other numbers
+        
+        # Remove all content that's inside spans to isolate the fantasy points
+        temp_soup = BeautifulSoup(f"<div>{text}</div>", 'html.parser')
+        # Get text parts that are not inside spans
+        text_parts = []
+        for node in temp_soup.find('div').contents:
+            if hasattr(node, 'name') and node.name == 'span':
+                continue  # Skip span content
+            else:
+                text_parts.append(str(node))
+        
+        remaining_text = ''.join(text_parts).strip()
+        
+        # Find numbers in the remaining text (should be just the fantasy points)
+        numbers = re.findall(r'\b\d+\.\d+\b', remaining_text)
+        if numbers:
+            try:
+                return float(numbers[-1])
+            except ValueError:
+                pass
+                
+        return None
     
     def _parse_player_info(self, text: str) -> Dict:
         """
