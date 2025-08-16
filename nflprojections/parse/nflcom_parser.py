@@ -252,6 +252,9 @@ class NFLComParser(HTMLTableParser):
         cleaned_text = re.sub(r'\s+', ' ', text.strip())
         cleaned_text = re.sub(r'\.+$', '', cleaned_text)  # Remove trailing periods
         
+        # Remove opponent information (vs TEAM, @TEAM, etc.) from the text
+        cleaned_text = re.sub(r'\s+(?:vs\.?\s+|@\s*)([A-Z]{2,3}).*$', '', cleaned_text)
+        
         # Try to match patterns like "Brian Thomas Jr. WR JAX" or "Player Name POS TEAM"
         # Pattern: Name ending with position and team
         pattern = r'^(.+?)\s+([A-Z]{1,3})\s+([A-Z]{2,3})$'
@@ -359,17 +362,17 @@ class NFLComParser(HTMLTableParser):
         for pattern in opponent_patterns:
             match = re.search(pattern, full_text)
             if match:
-                opponent_info['opponent'] = match.group(1)
+                opponent_info['opp'] = match.group(1)
                 break
         
         # Also check parent/sibling elements for opponent info
-        if not opponent_info.get('opponent'):
+        if not opponent_info.get('opp'):
             parent = container.parent if container.parent else container
             parent_text = parent.get_text()
             for pattern in opponent_patterns:
                 match = re.search(pattern, parent_text)
                 if match:
-                    opponent_info['opponent'] = match.group(1)
+                    opponent_info['opp'] = match.group(1)
                     break
                     
         return opponent_info
