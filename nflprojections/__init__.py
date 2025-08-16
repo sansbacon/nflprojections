@@ -5,6 +5,7 @@
 
 from .projectionsource import ProjectionSource
 from .projectioncombiner import ProjectionCombiner
+from .nflcom import NFLComProjections
 from .scoring_formats import (
     ScoringFormat, StandardScoring, HalfPPRScoring, PPRScoring,
     DraftKingsScoring, FanDuelScoring, YahooScoring, HomeAuctionScoring
