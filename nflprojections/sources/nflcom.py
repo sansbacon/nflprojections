@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 
 
 class NFLComProjections:
-    """Refactored NFL.com projections using separate functional components"""
+    """NFL.com projections using functional components architecture"""
     
     # Default column mapping from NFL.com format to standard format
     DEFAULT_COLUMN_MAPPING = {

@@ -101,7 +101,7 @@ def example_custom_column_mapping():
         'week': 'week'
     }
     
-    etr = ETRProjectionsRefactored(
+    etr = ETRProjections(
         season=2024,
         position="te",
         column_mapping=custom_mapping
@@ -126,7 +126,7 @@ def example_different_positions_and_scoring():
     ]
     
     for config in configurations:
-        etr = ETRProjectionsRefactored(
+        etr = ETRProjections(
             season=2024,
             week=1,
             **config
