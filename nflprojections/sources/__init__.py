@@ -10,6 +10,7 @@ from .nflcom import NFLComProjections
 from .etr import ETRProjections
 from .rotogrinders_refactored import RotogrindersProjections
 from .espn import ESPNProjections
+from .fantasylife import FantasyLifeProjections
 
 __all__ = [
     'ProjectionSource',
@@ -17,4 +18,5 @@ __all__ = [
     'ETRProjections',
     'RotogrindersProjections',
     'ESPNProjections',
+    'FantasyLifeProjections'
 ]
