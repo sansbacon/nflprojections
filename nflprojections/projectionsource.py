@@ -61,10 +61,8 @@ class ProjectionSource:
         use_schedule: bool = True,
         use_names: bool = True
     ):
-        self.scoring_format = scoring_format
         self.projections_source = source_name
         self.slate_name = slate_name
-        self.scorer = scorer
 
         # Validate column mappings
         assert self.REQUIRED_MAPPED_COLUMNS.issubset(set(column_mapping.values()))
