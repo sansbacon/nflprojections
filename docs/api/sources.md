@@ -122,8 +122,11 @@ source = ProjectionSource(
     standardizer=ProjectionStandardizer({
         'player': 'plyr',
         'position': 'pos',
-        'fantasy_points': 'proj'
-    }),
+        'team': 'team',
+        'fantasy_points': 'proj',
+        'season': 'season',
+        'week': 'week'
+    }, season=2025, week=1),
     season=2025,
     week=1
 )

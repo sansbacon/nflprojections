@@ -54,8 +54,10 @@ standardizer = ProjectionStandardizer({
     'player': 'plyr',
     'position': 'pos',
     'team': 'team',
-    'fantasy_points': 'proj'
-})
+    'fantasy_points': 'proj',
+    'season': 'season',
+    'week': 'week'
+}, season=2025, week=1)
 standardized_data = standardizer.standardize(parsed_df)
 
 print(f"Processed {len(standardized_data)} players")
