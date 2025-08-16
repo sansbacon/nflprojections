@@ -341,6 +341,39 @@ class TestNFLComComponents:
         assert player_data['position'] == "QB"
         assert player_data['team'] == "BUF"
     
+    def test_nflcom_parser_playerstat_structure(self):
+        """Test parsing NFL.com structure with playerStat spans"""
+        parser = NFLComParser()
+        
+        # Example HTML structure from the issue
+        html_content = '''
+        <div class="player-row">
+            Brian Thomas Jr. WR JAX<span class="playerStat statId-1 playerId-2572162">16</span><span class="playerStat statId-5 playerId-2572162"></span><span class="playerStat statId-6 playerId-2572162"></span><span class="playerStat statId-7 playerId-2572162"></span><span class="playerStat statId-14 playerId-2572162">18</span><span class="playerStat statId-15 playerId-2572162"></span><span class="playerStat statId-20 playerId-2572162">96</span><span class="playerStat statId-21 playerId-2572162">1305</span><span class="playerStat statId-22 playerId-2572162">8</span><span class="playerStat statId-28 playerId-2572162"></span><span class="playerStat statId-29 playerId-2572162"></span><span class="playerStat statId-32 playerId-2572162"></span><span class="playerStat statId-30 playerId-2572162">1</span>274.30
+        </div>
+        '''
+        
+        soup = BeautifulSoup(html_content, 'html.parser')
+        result = parser.parse_raw_data(soup)
+        
+        # Should return one player
+        assert len(result) == 1
+        player = result[0]
+        
+        # Check basic player info
+        assert player['player'] == 'Brian Thomas Jr.'
+        assert player['position'] == 'WR'
+        assert player['team'] == 'JAX'
+        assert player['player_id'] == 'player-2572162'
+        assert player['fantasy_points'] == 274.30
+        
+        # Check mapped statistics (based on statId mapping)
+        assert player['pass_cmp'] == 16      # statId-1
+        assert player['rush_td'] == 18       # statId-14  
+        assert player['rec'] == 96           # statId-20
+        assert player['rec_yds'] == 1305     # statId-21
+        assert player['rec_td'] == 8         # statId-22
+        assert player['two_pt'] == 1         # statId-30
+    
     @patch('requests.head')
     def test_nflcom_fetcher_validate_connection(self, mock_head):
         """Test connection validation"""
