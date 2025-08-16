@@ -6,18 +6,18 @@ This script demonstrates how to use the new ETR projection classes
 that follow the same patterns as the NFL.com implementation.
 """
 
-from nflprojections import ETRProjections, ETRProjectionsRefactored
+from nflprojections import ETRProjections
 from nflprojections.fetch import ETRFetcher
 from nflprojections.parse import ETRParser
 from nflprojections.standardize import ProjectionStandardizer
 
 
 def example_refactored_implementation():
-    """Example using the refactored implementation"""
-    print("=== ETR Refactored Implementation ===")
+    """Example using the current implementation with functional architecture"""
+    print("=== ETR Current Implementation ===")
     
     # Create configured pipeline
-    etr = ETRProjectionsRefactored(
+    etr = ETRProjections(
         season=2024,
         week=1,
         position="qb",
@@ -34,7 +34,7 @@ def example_refactored_implementation():
     # Note: Actual fetching would require a working ETR website
     # etr_projections = etr.fetch_projections()
     
-    print("✓ Refactored implementation configured successfully")
+    print("✓ Current implementation configured successfully")
 
 
 def example_functional_components():

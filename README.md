@@ -16,13 +16,13 @@ This package is organized into logical submodules for better code organization a
 - **`standardize/`** - Data standardization (base_standardizer.py)
 - **`scoring/`** - Scoring systems (scoring.py, scoring_formats.py)
 - **`combine/`** - Projection combination (projectioncombiner.py)
-- **`sources/`** - Complete projection sources (nflcom.py, nflcom_refactored.py, projectionsource.py)
+- **`sources/`** - Complete projection sources (nflcom.py, etr.py, espn.py, projectionsource.py)
 
 ### Import Structure
 
 **Main high-level APIs** are available from the root package:
 ```python
-from nflprojections import NFLComProjections, NFLComProjectionsRefactored
+from nflprojections import NFLComProjections, ETRProjections, ESPNProjections
 from nflprojections import ProjectionCombiner, ProjectionSource
 ```
 
@@ -48,13 +48,11 @@ See [FUNCTIONAL_ARCHITECTURE.md](FUNCTIONAL_ARCHITECTURE.md) for detailed docume
 
 ## Quick Start
 
-### Using the Refactored Implementation
-
 ```python
-from nflprojections import NFLComProjectionsRefactored
+from nflprojections import NFLComProjections
 
 # Create configured pipeline
-nfl = NFLComProjectionsRefactored(season=2025, week=1, position="1")  # QB only
+nfl = NFLComProjections(season=2025, week=1, position="1")  # QB only
 
 # Fetch projections
 df = nfl.fetch_projections()

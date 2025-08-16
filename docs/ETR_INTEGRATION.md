@@ -8,18 +8,17 @@ This document describes the new ETR (Establish The Run) projection source integr
 
 - **`ETRFetcher`** - Handles fetching data from ETR website
 - **`ETRParser`** - Parses HTML data from ETR into structured format
-- **`ETRProjections`** - Legacy-style class for backward compatibility
-- **`ETRProjectionsRefactored`** - Modern functional architecture implementation
+- **`ETRProjections`** - ETR projection class using functional architecture
 
 ## Usage Examples
 
-### Refactored Implementation (Recommended)
+### Using ETR Projections
 
 ```python
-from nflprojections import ETRProjectionsRefactored
+from nflprojections import ETRProjections
 
 # Create configured pipeline
-etr = ETRProjectionsRefactored(
+etr = ETRProjections(
     season=2024, 
     week=1, 
     position="qb",
@@ -68,7 +67,7 @@ final_data = standardizer.standardize(parsed_data)
 ```python
 from nflprojections import ETRProjections
 
-# Backward compatible usage
+# Backward compatible usage - same API, refactored implementation
 etr = ETRProjections(season=2024, week=1, position="wr", scoring="ppr")
 projections = etr.fetch_projections()
 ```
@@ -169,9 +168,9 @@ If you have existing ETR code, you can migrate to the new architecture:
 
 ### New Way
 ```python
-from nflprojections import ETRProjectionsRefactored
+from nflprojections import ETRProjections
 
-etr = ETRProjectionsRefactored(season=2024, week=1, position="rb")
+etr = ETRProjections(season=2024, week=1, position="rb")
 projections = etr.fetch_projections()
 
 # Additional benefits:
