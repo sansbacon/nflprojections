@@ -7,11 +7,13 @@
 
 from .base_parser import DataSourceParser, HTMLTableParser, CSVParser, JSONParser
 from .nflcom_parser import NFLComParser
+from .rotogrinders_parser import RotogrindersJSONParser
 
 __all__ = [
     'DataSourceParser',
     'HTMLTableParser',
     'CSVParser', 
     'JSONParser',
-    'NFLComParser'
+    'NFLComParser',
+    'RotogrindersJSONParser'
 ]
