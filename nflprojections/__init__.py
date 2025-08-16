@@ -14,6 +14,24 @@ from .sources.fantasylife import FantasyLifeProjections
 
 from .combine.projectioncombiner import ProjectionCombiner, CombinationMethod
 
+__all__ = [
+    'ProjectionSource',
+    'NFLComProjections', 
+    'ETRProjections',
+    'ESPNProjections',
+    'RotogrindersProjections',
+    'FantasyLifeProjections',
+    'ProjectionCombiner',
+    'CombinationMethod'
+]
+
+# Optional matching module - only available if imported successfully
+try:
+    from .matching import PlayerMatcher, MatchResult
+    __all__.extend(['PlayerMatcher', 'MatchResult'])
+except ImportError:
+    pass
+
 import logging
 
 logging.getLogger(__name__).addHandler(logging.NullHandler())
