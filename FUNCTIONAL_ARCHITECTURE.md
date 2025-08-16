@@ -284,3 +284,67 @@ raw_data = fetcher.fetch_raw_data()
 parsed_df = parser.parse_raw_data(raw_data)
 final_df = standardizer.standardize(parsed_df)
 ```
+
+## Using Composed ProjectionSource
+
+The `ProjectionSource` class now supports composition of functional components, providing a unified interface for the entire pipeline:
+
+### Option 4: Use Composed ProjectionSource
+
+```python
+from nflprojections import ProjectionSource, NFLComFetcher, NFLComParser, ProjectionStandardizer
+
+# Create functional components
+fetcher = NFLComFetcher(position="1")  # QB only
+parser = NFLComParser()
+
+column_mapping = {
+    'player': 'plyr',
+    'position': 'pos',
+    'team': 'team',
+    'fantasy_points': 'proj',
+    'season': 'season',
+    'week': 'week'
+}
+standardizer = ProjectionStandardizer(column_mapping, season=2025, week=1)
+
+# Create composed ProjectionSource
+proj_source = ProjectionSource(
+    fetcher=fetcher,
+    parser=parser,
+    standardizer=standardizer,
+    season=2025,
+    week=1
+)
+
+# Execute full pipeline with single method call
+projections_df = proj_source.fetch_projections()
+
+# Get pipeline information
+pipeline_info = proj_source.get_pipeline_info()
+print("Pipeline components:", pipeline_info)
+
+# Validate pipeline functionality  
+validation_results = proj_source.validate_data_pipeline()
+print("Pipeline validation:", validation_results)
+```
+
+### Legacy Compatibility
+
+The ProjectionSource class maintains full backward compatibility:
+
+```python
+from nflprojections import ProjectionSource
+
+# Legacy mode - works exactly as before
+legacy_source = ProjectionSource(
+    source_name="my_source",
+    column_mapping=column_mapping,
+    slate_name="main", 
+    season=2025,
+    week=1
+)
+
+# All existing methods work unchanged
+standardized_names = legacy_source.standardize_players(player_names)
+```
