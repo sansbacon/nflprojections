@@ -7,6 +7,33 @@ python library for fetching and aggregating NFL projections
 pip install -e .
 ```
 
+## Package Organization
+
+This package is organized into logical submodules for better code organization and maintainability:
+
+- **`fetch/`** - Data fetching components (base_fetcher.py, nflcom_fetcher.py)
+- **`parse/`** - Data parsing components (base_parser.py, nflcom_parser.py)  
+- **`standardize/`** - Data standardization (base_standardizer.py)
+- **`scoring/`** - Scoring systems (scoring.py, scoring_formats.py)
+- **`combine/`** - Projection combination (projectioncombiner.py)
+- **`sources/`** - Complete projection sources (nflcom.py, nflcom_refactored.py, projectionsource.py)
+
+### Import Options
+
+You can import components in two ways:
+
+**Traditional imports** (backward compatible):
+```python
+from nflprojections import NFLComProjections, ProjectionCombiner, NFLComFetcher
+```
+
+**Organized submodule imports**:
+```python
+from nflprojections.sources import NFLComProjections
+from nflprojections.combine import ProjectionCombiner  
+from nflprojections.fetch import NFLComFetcher
+```
+
 ## Architecture
 
 This package uses a functional architecture with clear separation of concerns across five main areas:
