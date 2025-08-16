@@ -18,7 +18,7 @@ try:
 except ImportError:
     nflschedule = None
 
-from .scoring import Scorer
+from ..scoring.scoring import Scorer
 
 
 class ProjectionSource:

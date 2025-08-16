@@ -10,9 +10,9 @@ Refactored NFL.com projections using functional components
 import logging
 from typing import Dict, Optional, List, Any
 
-from .nflcom_fetcher import NFLComFetcher
-from .nflcom_parser import NFLComParser
-from .base_standardizer import ProjectionStandardizer
+from ..fetch.nflcom_fetcher import NFLComFetcher
+from ..parse.nflcom_parser import NFLComParser
+from ..standardize.base_standardizer import ProjectionStandardizer
 
 
 logger = logging.getLogger(__name__)
