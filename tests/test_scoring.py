@@ -6,9 +6,8 @@
 import pandas as pd
 import pytest
 
-from nflprojections.scoring import Scorer
-from nflprojections.scoring_formats import (
-    ScoringFormat, StandardScoring, PPRScoring, DraftKingsScoring
+from nflprojections.scoring import (
+    ScoringFormat, StandardScoring, PPRScoring, DraftKingsScoring, Scorer
 )
 
 

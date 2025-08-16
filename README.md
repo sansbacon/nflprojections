@@ -7,6 +7,33 @@ python library for fetching and aggregating NFL projections
 pip install -e .
 ```
 
+## Package Organization
+
+This package is organized into logical submodules for better code organization and maintainability:
+
+- **`fetch/`** - Data fetching components (base_fetcher.py, nflcom_fetcher.py)
+- **`parse/`** - Data parsing components (base_parser.py, nflcom_parser.py)  
+- **`standardize/`** - Data standardization (base_standardizer.py)
+- **`scoring/`** - Scoring systems (scoring.py, scoring_formats.py)
+- **`combine/`** - Projection combination (projectioncombiner.py)
+- **`sources/`** - Complete projection sources (nflcom.py, nflcom_refactored.py, projectionsource.py)
+
+### Import Structure
+
+**Main high-level APIs** are available from the root package:
+```python
+from nflprojections import NFLComProjections, NFLComProjectionsRefactored
+from nflprojections import ProjectionCombiner, ProjectionSource
+```
+
+**Specific components** must be imported from their respective submodules:
+```python
+from nflprojections.fetch import NFLComFetcher, DataSourceFetcher
+from nflprojections.parse import NFLComParser, HTMLTableParser
+from nflprojections.scoring import StandardScoring, PPRScoring
+from nflprojections.standardize import ProjectionStandardizer
+```
+
 ## Architecture
 
 This package uses a functional architecture with clear separation of concerns across five main areas:
@@ -112,7 +139,7 @@ qb_df = qb_nfl.fetch_projections()
 
 ```python
 from nflprojections.scoring import Scorer
-from nflprojections.scoring_formats import StandardScoring, PPRScoring
+from nflprojections.scoring import StandardScoring, PPRScoring
 
 # Create scorer with standard scoring
 scorer = Scorer(StandardScoring())
