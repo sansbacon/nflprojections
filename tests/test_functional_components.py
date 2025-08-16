@@ -370,7 +370,7 @@ class TestNFLComComponents:
         assert player['pass_cmp'] == 16      # statId-1
         assert player['rush_td'] == 18       # statId-14  
         assert player['rec'] == 96           # statId-20
-        assert player['rec_yds'] == 1305     # statId-21
+        assert player['rec_yd'] == 1305      # statId-21 (singular to match scoring formats)
         assert player['rec_td'] == 8         # statId-22
         assert player['two_pt'] == 1         # statId-30
     

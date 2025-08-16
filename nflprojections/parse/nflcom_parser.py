@@ -268,24 +268,24 @@ class NFLComParser(HTMLTableParser):
         """Extract and map statistics from playerStat spans using statId"""
         stats = {}
         
-        # Mapping of statId to stat names - this is a basic mapping that may need refinement
+        # Mapping of statId to stat names - uses consistent naming with scoring formats
         # Based on common NFL fantasy statistics
         stat_id_mapping = {
             '1': 'pass_cmp',       # Passing completions
             '2': 'pass_att',       # Passing attempts  
-            '3': 'pass_yds',       # Passing yards
+            '3': 'pass_yd',        # Passing yards (singular to match scoring formats)
             '4': 'pass_td',        # Passing touchdowns
             '5': 'pass_int',       # Passing interceptions
             '6': 'rush_att',       # Rushing attempts
-            '7': 'rush_yds',       # Rushing yards
+            '7': 'rush_yd',        # Rushing yards (singular to match scoring formats)
             '14': 'rush_td',       # Rushing touchdowns
             '15': 'rush_lng',      # Rushing long
             '20': 'rec',           # Receptions
-            '21': 'rec_yds',       # Receiving yards
+            '21': 'rec_yd',        # Receiving yards (singular to match scoring formats)
             '22': 'rec_td',        # Receiving touchdowns
             '23': 'rec_lng',       # Receiving long
             '28': 'fumbles',       # Fumbles
-            '29': 'fumbles_lost',  # Fumbles lost
+            '29': 'fumble_lost',   # Fumbles lost (matches scoring format naming)
             '30': 'two_pt',        # Two-point conversions
             '32': 'targets',       # Targets (receiving)
         }
