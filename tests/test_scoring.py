@@ -6,10 +6,9 @@
 import pandas as pd
 import pytest
 
-from nflprojections import (
-    ScoringFormat, StandardScoring, PPRScoring, DraftKingsScoring
+from nflprojections.scoring import (
+    ScoringFormat, StandardScoring, PPRScoring, DraftKingsScoring, Scorer
 )
-from nflprojections.scoring.scoring import Scorer
 
 
 class TestScorer:

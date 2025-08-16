@@ -13,13 +13,11 @@ import numpy as np
 from unittest.mock import Mock, patch, MagicMock
 from bs4 import BeautifulSoup
 
-from nflprojections import (
-    DataSourceFetcher, WebDataFetcher, FileDataFetcher,
-    DataSourceParser, HTMLTableParser, CSVParser, JSONParser,
-    DataStandardizer, ProjectionStandardizer, StatStandardizer,
-    ProjectionCombiner, CombinationMethod,
-    NFLComFetcher, NFLComParser, NFLComProjectionsRefactored
-)
+from nflprojections.fetch import DataSourceFetcher, WebDataFetcher, FileDataFetcher, NFLComFetcher
+from nflprojections.parse import DataSourceParser, HTMLTableParser, CSVParser, JSONParser, NFLComParser
+from nflprojections.standardize import DataStandardizer, ProjectionStandardizer, StatStandardizer
+from nflprojections.combine import ProjectionCombiner, CombinationMethod
+from nflprojections.sources import NFLComProjectionsRefactored
 
 
 class TestDataSourceFetcher:
@@ -358,9 +356,9 @@ class TestNFLComComponents:
 class TestNFLComRefactored:
     """Test the refactored NFLComProjections"""
     
-    @patch('nflprojections.nflcom_refactored.NFLComFetcher')
-    @patch('nflprojections.nflcom_refactored.NFLComParser') 
-    @patch('nflprojections.nflcom_refactored.ProjectionStandardizer')
+    @patch('nflprojections.sources.nflcom_refactored.NFLComFetcher')
+    @patch('nflprojections.sources.nflcom_refactored.NFLComParser') 
+    @patch('nflprojections.sources.nflcom_refactored.ProjectionStandardizer')
     def test_initialization(self, mock_standardizer, mock_parser, mock_fetcher):
         """Test initialization of refactored component"""
         nfl = NFLComProjectionsRefactored(season=2025, week=1)
@@ -381,9 +379,9 @@ class TestNFLComRefactored:
         assert info['season'] == '2025'
         assert info['week'] == '1'
     
-    @patch('nflprojections.nflcom_refactored.NFLComFetcher.fetch_raw_data')
-    @patch('nflprojections.nflcom_refactored.NFLComParser.parse_raw_data')
-    @patch('nflprojections.nflcom_refactored.ProjectionStandardizer.standardize')
+    @patch('nflprojections.sources.nflcom_refactored.NFLComFetcher.fetch_raw_data')
+    @patch('nflprojections.sources.nflcom_refactored.NFLComParser.parse_raw_data')
+    @patch('nflprojections.sources.nflcom_refactored.ProjectionStandardizer.standardize')
     def test_fetch_projections_pipeline(self, mock_standardize, mock_parse, mock_fetch):
         """Test the full data pipeline"""
         # Setup mocks

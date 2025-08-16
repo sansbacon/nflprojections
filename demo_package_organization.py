@@ -1,40 +1,38 @@
 #!/usr/bin/env python3
 """
-Demo script showing the new package substructure organization.
+Demo script showing the new package submodule organization.
 
 This demonstrates that:
 1. The package is pip-installable 
-2. All existing imports still work (backward compatibility)
-3. New organized submodule imports are available
-4. Clear separation of concerns is maintained
+2. Main high-level APIs are available from the root package
+3. Organized submodule imports provide clear separation of concerns
+4. Users import specific components from logical submodules
 """
 
-def demo_backward_compatibility():
-    """Show that all existing imports still work exactly as before."""
-    print("=== Backward Compatibility Test ===")
+def demo_main_package_apis():
+    """Show the main high-level APIs available from the root package."""
+    print("=== Main Package APIs ===")
     
-    # All these imports should work exactly as before
+    # Main high-level APIs available from root package
     from nflprojections import NFLComProjections, NFLComProjectionsRefactored
     from nflprojections import ProjectionCombiner, CombinationMethod
-    from nflprojections import NFLComFetcher, NFLComParser
-    from nflprojections import DataSourceFetcher, ProjectionStandardizer
-    from nflprojections import ScoringFormat, StandardScoring
+    from nflprojections import ProjectionSource
     
-    print("✓ All existing imports work correctly")
+    print("✓ Main projection source APIs available from root package")
+    print("✓ Projection combination APIs available from root package")
     
     # Test instantiation
-    fetcher = NFLComFetcher()
     nfl = NFLComProjectionsRefactored(season=2024, use_names=False)
     
-    print("✓ All classes can be instantiated as before")
+    print("✓ All main classes can be instantiated")
     print()
 
 
-def demo_new_organization():
-    """Show the new organized submodule structure."""
-    print("=== New Submodule Organization ===")
+def demo_submodule_organization():
+    """Show the organized submodule structure."""
+    print("=== Submodule Organization ===")
     
-    # Now users can also import from logical groupings
+    # Users import specific components from logical submodules
     from nflprojections.fetch import NFLComFetcher, DataSourceFetcher
     from nflprojections.parse import NFLComParser, HTMLTableParser  
     from nflprojections.standardize import ProjectionStandardizer
@@ -55,7 +53,7 @@ def demo_package_structure():
     """Show the organized package structure."""
     print("=== Package Structure ===")
     print("nflprojections/")
-    print("├── __init__.py           # Main package interface (backward compatible)")
+    print("├── __init__.py           # Main high-level APIs only")
     print("├── fetch/                # Data fetching components")
     print("│   ├── __init__.py")
     print("│   ├── base_fetcher.py   # Abstract fetcher classes")
@@ -95,20 +93,20 @@ def demo_pip_installation():
 
 
 if __name__ == "__main__":
-    print("NFL Projections Package - Substructure Organization Demo")
+    print("NFL Projections Package - Submodule Organization Demo")
     print("=" * 60)
     print()
     
-    demo_backward_compatibility()
-    demo_new_organization() 
+    demo_main_package_apis()
+    demo_submodule_organization() 
     demo_package_structure()
     demo_pip_installation()
     
     print("=== Summary ===")
-    print("✅ Package maintains 100% backward compatibility")
+    print("✅ Main high-level APIs available from root package")
     print("✅ Organized into 6 logical submodules for better code organization")
     print("✅ Clear separation of concerns (fetch, parse, standardize, score, combine, sources)")
     print("✅ Pip-installable Python module")
-    print("✅ Both flat imports and organized submodule imports supported")
+    print("✅ Explicit submodule imports for better code organization")
     print()
-    print("The package now has excellent organization while maintaining all existing functionality!")
+    print("The package now has excellent organization with clear component separation!")
