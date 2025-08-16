@@ -9,8 +9,11 @@ Base classes for parsing data from different sources
 
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List
-import pandas as pd
 
+from bs4 import BeautifulSoup
+
+
+## TODO: change from Pandas to list of dict
 
 class DataSourceParser(ABC):
     """Abstract base class for parsing data from different sources"""
@@ -27,26 +30,25 @@ class DataSourceParser(ABC):
         self.config = kwargs
     
     @abstractmethod
-    def parse_raw_data(self, raw_data: Any) -> pd.DataFrame:
+    def parse_raw_data(self, raw_data: Any) -> List[Dict]:
         """
-        Parse raw data into a standardized DataFrame structure
+        Parse raw data into a standardized list of dictionaries structure
         
         Args:
             raw_data: Raw data from the fetcher
             
         Returns:
-            DataFrame with parsed data in source-specific column format
+            List of dictionaries with parsed data in source-specific column format
         """
         pass
-    
+
     @abstractmethod
-    def validate_parsed_data(self, df: pd.DataFrame) -> bool:
+    def validate_parsed_data(self, data: List[Dict]) -> bool:
         """
         Validate that parsed data meets expected format
         
         Args:
-            df: Parsed DataFrame
-            
+            data: Parsed data as a list of dictionaries
         Returns:
             True if data is valid, False otherwise
         """
@@ -68,20 +70,18 @@ class HTMLTableParser(DataSourceParser):
         super().__init__(source_name, **kwargs)
         self.table_selector = table_selector
     
-    def parse_raw_data(self, raw_data) -> pd.DataFrame:
-        """Parse HTML data into DataFrame"""
+    def parse_raw_data(self, raw_data) -> List[Dict]:
+        """Parse HTML data into a list of dictionaries"""
         if hasattr(raw_data, 'find_all'):  # BeautifulSoup object
             soup = raw_data
         else:  # String HTML
-            from bs4 import BeautifulSoup
             soup = BeautifulSoup(raw_data, 'html.parser')
-        
         table_data = self.extract_table_data(soup)
-        return pd.DataFrame(table_data) if table_data else pd.DataFrame()
-    
-    def validate_parsed_data(self, df: pd.DataFrame) -> bool:
+        return table_data if table_data else []
+
+    def validate_parsed_data(self, data: List[Dict]) -> bool:
         """Validate HTML table data"""
-        return not df.empty and len(df.columns) > 0
+        return bool(data) and isinstance(data, list) and isinstance(data[0], dict)
     
     def extract_table_data(self, soup) -> List[Dict]:
         """
@@ -126,35 +126,36 @@ class HTMLTableParser(DataSourceParser):
 class CSVParser(DataSourceParser):
     """Parser for CSV data"""
     
-    def parse_raw_data(self, raw_data: str) -> pd.DataFrame:
-        """Parse CSV string data into DataFrame"""
+    def parse_raw_data(self, raw_data: str) -> List[Dict]:
+        """Parse CSV string data into a list of dictionaries"""
+        import csv
         from io import StringIO
-        return pd.read_csv(StringIO(raw_data))
-    
-    def validate_parsed_data(self, df: pd.DataFrame) -> bool:
+        reader = csv.DictReader(StringIO(raw_data))
+        return [row for row in reader]
+
+    def validate_parsed_data(self, data: List[Dict]) -> bool:
         """Validate CSV data has expected structure"""
-        return not df.empty and len(df.columns) > 0
+        return bool(data) and isinstance(data, list) and isinstance(data[0], dict)
 
 
 class JSONParser(DataSourceParser):
     """Parser for JSON data"""
     
-    def parse_raw_data(self, raw_data: str) -> pd.DataFrame:
-        """Parse JSON string data into DataFrame"""
+    def parse_raw_data(self, raw_data: str) -> List[Dict]:
+        """Parse JSON string data into a list of dictionaries"""
         import json
         data = json.loads(raw_data)
-        
         if isinstance(data, list):
-            return pd.DataFrame(data)
+            return data
         elif isinstance(data, dict):
             # Handle different JSON structures
-            if 'data' in data:
-                return pd.DataFrame(data['data'])
+            if 'data' in data and isinstance(data['data'], list):
+                return data['data']
             else:
-                return pd.DataFrame([data])
+                return [data]
         else:
             raise ValueError("Unsupported JSON structure")
-    
-    def validate_parsed_data(self, df: pd.DataFrame) -> bool:
+
+    def validate_parsed_data(self, data: List[Dict]) -> bool:
         """Validate JSON data has expected structure"""
-        return not df.empty
+        return bool(data) and isinstance(data, list) and isinstance(data[0], dict)

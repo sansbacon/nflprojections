@@ -8,6 +8,7 @@ Base classes for fetching data from different sources
 """
 
 from abc import ABC, abstractmethod
+from pathlib import Path
 from typing import Any, Dict, Optional
 
 
@@ -122,6 +123,29 @@ class FileDataFetcher(DataSourceFetcher):
     
     def validate_connection(self) -> bool:
         """Check if file exists and is readable"""
-        from pathlib import Path
         path = Path(self.file_path)
         return path.exists() and path.is_file()
+
+
+class DeltaDataFetcher(DataSourceFetcher):
+    """Base class for fetching data from delta table sources"""
+    
+    def __init__(self, source_name: str, fqn: str, **kwargs):
+        """
+        Initialize Delta data fetcher
+        
+        Args:
+            source_name: Name identifier for the data source  
+            fqn: path to table
+            **kwargs: Additional configuration
+        """
+        super().__init__(source_name, **kwargs)
+        self.fqn = fqn
+    
+    def fetch_raw_data(self, **fetch_params) -> str:
+        """Default implementation for file fetching"""
+        pass
+    
+    def validate_connection(self) -> bool:
+        """Check if file exists and is readable"""
+        pass
