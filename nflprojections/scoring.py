@@ -12,7 +12,7 @@ from typing import Dict, List, Optional, Union
 import numpy as np
 import pandas as pd
 
-from scoring_formats import ScoringFormat
+from .scoring_formats import ScoringFormat
 
 
 class Scorer:
