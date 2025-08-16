@@ -100,6 +100,11 @@ class NFLComProjections:
         # Store the use_names flag for later use in standardization
         self.use_names = use_names
     
+    @property
+    def column_mapping(self):
+        """Backward compatibility property for accessing column mapping"""
+        return self.standardizer.column_mapping
+    
     def fetch_raw_data(self, season: int = None) -> Any:
         """
         Fetch raw data using the fetcher component

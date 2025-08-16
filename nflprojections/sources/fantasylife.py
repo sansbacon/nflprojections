@@ -93,6 +93,11 @@ class FantasyLifeProjections:
         # Store file path for reference
         self.file_path = file_path
     
+    @property
+    def column_mapping(self):
+        """Backward compatibility property for accessing column mapping"""
+        return self.standardizer.column_mapping
+    
     def fetch_raw_data(self) -> str:
         """
         Fetch raw CSV data using the fetcher component
