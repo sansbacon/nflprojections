@@ -11,10 +11,10 @@ PACKAGE_NAME = "nflprojections"
 
 def run():
     setup(name=PACKAGE_NAME,
-          version="0.1",
+          version="0.2",
           description="python library for collecting and combining NFL projections",
           author="Eric Truett",
-          author_email="eric@erictruett.com",
+          author_email="sansbacon@gmail.com",
           license="MIT",
           packages=find_packages(),
           package_data={PACKAGE_NAME: ['data/*.*']},
