@@ -30,7 +30,7 @@ class FantasyProsProjections:
         'season': 'season',
         'week': 'week',
         # QB-specific stats
-        'att': 'pass_att',
+        'pass_att': 'pass_att',
         'cmp': 'pass_cmp',
         'pass_yds': 'pass_yd', 
         'pass_td': 'pass_td',
@@ -39,10 +39,13 @@ class FantasyProsProjections:
         'rush_yds': 'rush_yd',
         'rush_td': 'rush_td',
         'fum': 'fum_lost',
-        # Skill position stats
+        # Skill position stats  
         'rec': 'rec',
         'rec_yds': 'rec_yd',
         'rec_td': 'rec_td',
+        'att': 'rush_att',  # For non-QB positions, 'att' refers to rushing attempts
+        'yds': 'rush_yd',   # For non-QB positions, 'yds' refers to rushing yards
+        'td': 'rush_td',    # For non-QB positions, 'td' refers to rushing TDs
     }
     
     def __init__(

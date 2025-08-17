@@ -163,13 +163,15 @@ class TestFantasyProsProjections:
         assert mapping['fantasy_points'] == 'proj'
         
         # Check some QB-specific mappings
-        assert mapping['att'] == 'pass_att'
+        assert mapping['pass_att'] == 'pass_att'
         assert mapping['cmp'] == 'pass_cmp'
         assert mapping['int'] == 'pass_int'
+        assert mapping['rush_att'] == 'rush_att'
         
         # Check skill position mappings
         assert mapping['rec'] == 'rec'
         assert mapping['rec_td'] == 'rec_td'
+        assert mapping['att'] == 'rush_att'  # For non-QB positions
 
 
 # Integration test (would need mocking for actual HTTP requests)

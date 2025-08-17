@@ -138,7 +138,23 @@ class FantasyProsParser(HTMLTableParser):
                 # Use the last header row which has the actual column names
                 last_header_row = header_rows[-1]
                 header_cells = last_header_row.find_all(['th', 'td'])
-                headers = [self._clean_header_text(cell.get_text(strip=True)) for cell in header_cells]
+                
+                # Track position for QB tables with duplicate column names
+                column_index = 0
+                for cell in header_cells:
+                    header_text = self._clean_header_text(cell.get_text(strip=True))
+                    
+                    # For QB tables, differentiate between passing and rushing stats
+                    if self.position == 'qb' and column_index > 0:
+                        if header_text in ['att', 'yds', 'td'] and column_index <= 5:
+                            # These are passing stats (columns 1-5)
+                            header_text = f'pass_{header_text}'
+                        elif header_text in ['att', 'yds', 'td'] and column_index > 5:
+                            # These are rushing stats (columns 6+)  
+                            header_text = f'rush_{header_text}'
+                    
+                    headers.append(header_text)
+                    column_index += 1
         
         # If no headers found in thead, look in first row
         if not headers:
