@@ -99,7 +99,7 @@ def test_remap_columns(nflcom_projections):
     assert 'fantasy_points' not in remapped.columns
 
 
-@patch('nflprojections.nflcom.requests.get')
+@patch('nflprojections.sources.nflcom.requests.get')
 def test_fetch_page_success(mock_get, nflcom_projections):
     """Test successful page fetching"""
     # Mock successful response
@@ -115,7 +115,7 @@ def test_fetch_page_success(mock_get, nflcom_projections):
     mock_get.assert_called_once()
 
 
-@patch('nflprojections.nflcom.requests.get')
+@patch('nflprojections.sources.nflcom.requests.get')
 def test_fetch_page_error(mock_get, nflcom_projections):
     """Test page fetching with error"""
     # Mock request exception
