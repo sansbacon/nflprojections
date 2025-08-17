@@ -224,4 +224,184 @@ if __name__ == "__main__":
         
     except Exception as e:
         print(f"⚠️  Tests skipped due to import issues: {e}")
-        print("✓ Code structure is correct - tests will work once dependencies are resolved")
+        print("✓ Code structure is correct - tests will work once dependencies are resolved")#!/usr/bin/env python3
+
+"""
+Test for the NFLComParser subheader fix
+"""
+
+import pytest
+from bs4 import BeautifulSoup
+from nflprojections.parse.nflcom_parser import NFLComParser
+
+class TestNFLComParserSubheaderFix:
+    """Test the fix for subheader parsing issue #49"""
+
+    def test_skip_subheader_rows(self):
+        """Test that parser correctly skips subheader rows containing stat abbreviations"""
+        
+        html_content = '''
+        <table>
+            <thead>
+                <tr>
+                    <th>Player</th>
+                    <th>Passing</th>
+                    <th>Rushing</th>
+                    <th>Receiving</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>TD</td>
+                    <td>Yds</td>
+                    <td>TD</td>
+                    <td>Int</td>
+                </tr>
+                <tr>
+                    <td>Lamar Jackson QB BAL</td>
+                    <td>30</td>
+                    <td>3619</td>
+                    <td>9</td>
+                </tr>
+            </tbody>
+        </table>
+        '''
+        
+        soup = BeautifulSoup(html_content, 'html.parser')
+        parser = NFLComParser()
+        
+        parsed = parser.parse_raw_data(soup)
+        
+        # Should have exactly 1 record (skipping the subheader row)
+        assert len(parsed) == 1
+        
+        # Should correctly parse the player data
+        player_data = parsed[0]
+        assert player_data['player'] == 'Lamar Jackson'
+        assert player_data['position'] == 'QB'
+        assert player_data['team'] == 'BAL'
+        assert player_data['passing'] == '30'
+        assert player_data['rushing'] == '3619'
+        assert player_data['receiving'] == '9'
+
+    def test_is_subheader_row(self):
+        """Test the subheader row detection logic"""
+        parser = NFLComParser()
+        
+        # Test typical subheader row
+        subheader = ['TD', 'Yds', 'TD', 'Int', 'Rec']
+        assert parser._is_subheader_row(subheader) == True
+        
+        # Test player data row
+        player_data = ['Josh Allen QB BUF', '25', '300', '2', '5']
+        assert parser._is_subheader_row(player_data) == False
+        
+        # Test mixed row (should not be considered subheader)
+        mixed = ['Player', '25', 'TD', 'Int', 'Normal']
+        assert parser._is_subheader_row(mixed) == False
+        
+        # Test empty row
+        assert parser._is_subheader_row([]) == False
+
+    def test_filter_invalid_player_data(self):
+        """Test that rows with invalid player data (like '-') are filtered out"""
+        
+        html_content = '''
+        <table>
+            <thead>
+                <tr>
+                    <th>Player</th>
+                    <th>Team</th>
+                    <th>Points</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>TD</td>
+                    <td>Yds</td>
+                    <td>Points</td>
+                </tr>
+                <tr>
+                    <td>-</td>
+                    <td>BAL</td>
+                    <td>351.96</td>
+                </tr>
+            </tbody>
+        </table>
+        '''
+        
+        soup = BeautifulSoup(html_content, 'html.parser')
+        parser = NFLComParser()
+        
+        parsed = parser.parse_raw_data(soup)
+        
+        # Should have no records (subheader row skipped, invalid player row filtered)
+        assert len(parsed) == 0
+
+    def test_original_issue_reproduction(self):
+        """Test that reproduces the exact original issue described in #49"""
+        
+        html_content = '''
+        <table>
+            <thead>
+                <tr>
+                    <th>Player</th>
+                    <th>Passing</th>
+                    <th>Rushing</th>
+                    <th>Receiving</th>
+                    <th>Ret</th>
+                    <th>Misc</th>
+                    <th>Fum</th>
+                    <th>Fantasy</th>
+                    <th>Opp</th>
+                    <th>GP</th>
+                    <th>Yds</th>
+                    <th>TD</th>
+                    <th>Int</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>TD</td>
+                    <td>Yds</td>
+                    <td>TD</td>
+                    <td>Int</td>
+                    <td>Yds</td>
+                    <td>TD</td>
+                    <td>Rec</td>
+                    <td>Yds</td>
+                    <td>TD</td>
+                    <td>FumTD</td>
+                    <td>2PT</td>
+                    <td>Lost</td>
+                    <td>Points</td>
+                </tr>
+                <tr>
+                    <td>-</td>
+                    <td>BAL</td>
+                    <td>16</td>
+                    <td>3619</td>
+                    <td>30</td>
+                    <td>9</td>
+                    <td>832</td>
+                    <td>4</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>1</td>
+                    <td>-</td>
+                    <td>4</td>
+                    <td>351.96</td>
+                </tr>
+            </tbody>
+        </table>
+        '''
+        
+        soup = BeautifulSoup(html_content, 'html.parser')
+        parser = NFLComParser()
+        
+        parsed = parser.parse_raw_data(soup)
+        
+        # Before fix: Would return [{'player': 'TD', 'passing': 'Yds', ...}, {'player': '-', ...}]
+        # After fix: Should return [] (both rows filtered out)
+        assert len(parsed) == 0

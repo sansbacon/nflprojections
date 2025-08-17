@@ -97,6 +97,11 @@ class NFLComParser(HTMLTableParser):
             if not cells:
                 continue
             
+            # Check if this row contains sub-headers (like "TD", "Yds", etc.) instead of player data
+            cell_texts = [cell.get_text(strip=True) for cell in cells]
+            if self._is_subheader_row(cell_texts):
+                continue  # Skip sub-header rows
+            
             player_data = {}
             
             for i, cell in enumerate(cells):
@@ -129,6 +134,31 @@ class NFLComParser(HTMLTableParser):
                 data.append(player_data)
         
         return data
+    
+    def _is_subheader_row(self, cell_texts: List[str]) -> bool:
+        """
+        Check if a row contains sub-header information rather than player data
+        
+        Args:
+            cell_texts: List of text content from table cells
+            
+        Returns:
+            True if the row appears to contain sub-headers, False otherwise
+        """
+        if not cell_texts:
+            return False
+        
+        # Sub-header rows typically contain generic stat abbreviations
+        subheader_indicators = {
+            'TD', 'Yds', 'Int', 'Rec', 'FumTD', '2PT', 'Lost', 'Points', 
+            'Att', 'Cmp', 'Tgt', 'Long', 'Avg', 'YAC', 'Fum', 'FL'
+        }
+        
+        # If most cells contain common stat abbreviations, it's likely a sub-header
+        matching_indicators = sum(1 for cell in cell_texts if cell in subheader_indicators)
+        
+        # If more than half the cells are stat indicators, it's probably a sub-header
+        return matching_indicators > len(cell_texts) / 2
     
     def _extract_from_alternative_structure(self, soup: BeautifulSoup) -> List[Dict]:
         """Try alternative parsing methods for NFL.com data"""
