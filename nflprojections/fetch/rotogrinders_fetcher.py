@@ -15,8 +15,11 @@ from .base_fetcher import WebDataFetcher
 try:
     import browser_cookie3
     import requests
-except ImportError as e:
-    raise ImportError(f"Required dependencies missing for Rotogrinders fetcher: {e}")
+    _HAS_ROTOGRINDERS_DEPS = True
+except ImportError:
+    browser_cookie3 = None
+    requests = None
+    _HAS_ROTOGRINDERS_DEPS = False
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +38,15 @@ class RotogrindersWebFetcher(WebDataFetcher):
         
         Args:
             **kwargs: Additional configuration
+        
+        Raises:
+            ImportError: If required dependencies (browser_cookie3) are not installed
         """
+        if not _HAS_ROTOGRINDERS_DEPS:
+            raise ImportError(
+                "browser_cookie3 is required for RotogrindersWebFetcher. "
+                "Install with: pip install browser_cookie3"
+            )
         super().__init__(
             source_name="rotogrinders",
             base_url="https://rotogrinders.com/lineuphq/nfl",

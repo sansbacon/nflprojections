@@ -3,8 +3,30 @@ python library for fetching and aggregating NFL projections
 
 ## Installation
 
+### Install from Source
+
 ```bash
+git clone https://github.com/sansbacon/nflprojections.git
+cd nflprojections
 pip install -e .
+```
+
+### Install Dependencies Only
+
+If you want to install just the dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+### Development Installation
+
+For development with testing and documentation tools:
+
+```bash
+pip install -r requirements-dev.txt
+# OR
+pip install -e .[dev,optional]
 ```
 
 ## Package Organization
