@@ -55,12 +55,59 @@ class TestESPNFetcher:
         mock_response = Mock()
         mock_response.raise_for_status.return_value = None
         mock_response.json.return_value = {"players": [{"player": {"id": 1, "fullName": "Test Player"}}]}
+        mock_response.content = b'{"players": [{"player": {"id": 1, "fullName": "Test Player"}}]}'
         mock_get.return_value = mock_response
         
         result = fetcher.fetch_raw_data()
         
         assert result is not None
         assert "players" in result
+        mock_get.assert_called_once()
+
+    @patch('requests.Session.get')
+    def test_espn_fetcher_json_decode_error(self, mock_get):
+        """Test ESPN fetcher handles JSON decode error gracefully"""
+        fetcher = ESPNFetcher(season=2025)
+        
+        # Mock response that has content but invalid JSON (like HTML error page)
+        mock_response = Mock()
+        mock_response.raise_for_status.return_value = None
+        mock_response.content = b'<html><body>Error 503: Service Temporarily Unavailable</body></html>'
+        mock_response.text = '<html><body>Error 503: Service Temporarily Unavailable</body></html>'
+        mock_response.status_code = 200
+        mock_response.headers = {'content-type': 'text/html'}
+        mock_response.json.side_effect = ValueError("Expecting value: line 1 column 1 (char 0)")
+        mock_get.return_value = mock_response
+        
+        with pytest.raises(ValueError) as exc_info:
+            fetcher.fetch_raw_data()
+        
+        # Verify error message contains useful information
+        error_msg = str(exc_info.value)
+        assert "ESPN API returned invalid JSON response" in error_msg
+        assert "Status: 200" in error_msg
+        assert "Content-Type: text/html" in error_msg
+        mock_get.assert_called_once()
+
+    @patch('requests.Session.get')
+    def test_espn_fetcher_empty_response(self, mock_get):
+        """Test ESPN fetcher handles empty response"""
+        fetcher = ESPNFetcher(season=2025)
+        
+        # Mock empty response
+        mock_response = Mock()
+        mock_response.raise_for_status.return_value = None
+        mock_response.content = b''
+        mock_response.text = ''
+        mock_response.status_code = 200
+        mock_get.return_value = mock_response
+        
+        with pytest.raises(ValueError) as exc_info:
+            fetcher.fetch_raw_data()
+        
+        # Verify error message for empty response
+        error_msg = str(exc_info.value)
+        assert "ESPN API returned empty response" in error_msg
         mock_get.assert_called_once()
     
     @patch('requests.Session.head')
@@ -247,8 +294,8 @@ class TestESPNProjections:
         espn = ESPNProjections(season=2025, week=1)
         assert espn.season == 2025
         assert espn.week == 1
-        assert espn.composed_mode is True
         assert espn.fetcher.source_name == "espn"
+        assert espn.parser.source_name == "espn"
     
     @patch('nflprojections.fetch.espn_fetcher.ESPNFetcher.validate_connection')
     def test_espn_projections_validate_data_pipeline(self, mock_validate):

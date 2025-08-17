@@ -114,7 +114,27 @@ class ESPNFetcher(DataSourceFetcher):
                 timeout=self.timeout
             )
             response.raise_for_status()
-            return response.json()
+            
+            # Check if response has content
+            if not response.content:
+                logger.error("ESPN API returned empty response")
+                raise ValueError("ESPN API returned empty response")
+            
+            # Try to parse JSON with better error handling
+            try:
+                return response.json()
+            except ValueError as json_error:
+                # Log the actual response content for debugging (truncated to avoid too much noise)
+                content_preview = response.text[:500] if response.text else "No content"
+                logger.error(
+                    f"ESPN API returned invalid JSON. Status: {response.status_code}, "
+                    f"Content-Type: {response.headers.get('content-type', 'unknown')}, "
+                    f"Content preview: {content_preview}"
+                )
+                raise ValueError(
+                    f"ESPN API returned invalid JSON response. "
+                    f"Status: {response.status_code}, Content-Type: {response.headers.get('content-type', 'unknown')}"
+                ) from json_error
             
         except requests.RequestException as e:
             logger.error(f"Error fetching ESPN API data: {e}")
