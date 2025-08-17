@@ -8,7 +8,7 @@
 from .projectionsource import ProjectionSource
 from .nflcom import NFLComProjections
 from .etr import ETRProjections
-from .rotogrinders_refactored import RotogrindersProjections
+from .rotogrinders import RotogrindersProjections
 from .espn import ESPNProjections
 from .fantasylife import FantasyLifeProjections
 

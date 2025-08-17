@@ -9,7 +9,7 @@ from .sources.nflcom import NFLComProjections
 from .sources.etr import ETRProjections
 from .sources.espn import ESPNProjections
 
-from .sources.rotogrinders_refactored import RotogrindersProjections
+from .sources.rotogrinders import RotogrindersProjections
 from .sources.fantasylife import FantasyLifeProjections
 
 from .combine.projectioncombiner import ProjectionCombiner, CombinationMethod
