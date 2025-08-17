@@ -49,6 +49,7 @@ nav:
     - Standardize: api/standardize.md
     - Scoring: api/scoring.md
     - Combine: api/combine.md
+    - Matching: api/matching.md
     - Sources: api/sources.md
   - Examples:
     - Basic Usage: examples/basic.md
