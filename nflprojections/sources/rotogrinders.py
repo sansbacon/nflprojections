@@ -1,10 +1,10 @@
-# nflprojections/rotogrinders_refactored.py
+# nflprojections/rotogrinders.py
 # -*- coding: utf-8 -*-
 # Copyright (C) 2025 Eric Truett
 # Licensed under the MIT License
 
 """
-Refactored Rotogrinders projections using functional components
+Rotogrinders projections using functional components
 """
 
 import logging
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 class RotogrindersProjections:
-    """Refactored Rotogrinders projections using separate functional components"""
+    """Rotogrinders projections using separate functional components"""
     
     # Default column mapping from Rotogrinders format to standard format
     DEFAULT_COLUMN_MAPPING = {
@@ -46,7 +46,7 @@ class RotogrindersProjections:
         **kwargs
     ):
         """
-        Initialize refactored Rotogrinders projections
+        Initialize Rotogrinders projections
         
         NOTE: Subscription is required. You must have firefox installed 
         and have logged in to rotogrinders in that browser profile.

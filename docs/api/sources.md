@@ -24,7 +24,7 @@ The sources module provides complete projection sources that combine fetching, p
       show_root_heading: true
       show_source: false
 
-::: nflprojections.sources.rotogrinders_refactored.RotogrindersProjections
+::: nflprojections.sources.rotogrinders.RotogrindersProjections
     options:
       show_root_heading: true
       show_source: false
