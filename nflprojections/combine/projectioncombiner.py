@@ -12,6 +12,12 @@ import pandas as pd
 import numpy as np
 from enum import Enum
 
+try:
+    from ..matching import PlayerMatcher, MatchResult
+    _HAS_MATCHING = True
+except ImportError:
+    _HAS_MATCHING = False
+
 
 class CombinationMethod(Enum):
     """Available methods for combining projections"""
@@ -25,14 +31,26 @@ class CombinationMethod(Enum):
 class ProjectionCombiner:
     """Combines forecasts from multiple projection sources using various algorithms"""
 
-    def __init__(self, method: CombinationMethod = CombinationMethod.AVERAGE):
+    def __init__(self, 
+                 method: CombinationMethod = CombinationMethod.AVERAGE,
+                 use_fuzzy_matching: bool = False,
+                 matcher_config: Optional[Dict[str, float]] = None):
         """
         Initialize projection combiner
         
         Args:
             method: Default combination method to use
+            use_fuzzy_matching: Whether to use fuzzy matching for player names
+            matcher_config: Configuration for PlayerMatcher thresholds
         """
         self.method = method
+        self.use_fuzzy_matching = use_fuzzy_matching and _HAS_MATCHING
+        
+        if self.use_fuzzy_matching:
+            self.player_matcher = PlayerMatcher(**(matcher_config or {}))
+        else:
+            self.player_matcher = None
+            
         self.combination_functions = {
             CombinationMethod.AVERAGE: self._simple_average,
             CombinationMethod.WEIGHTED_AVERAGE: self._weighted_average,
@@ -84,7 +102,11 @@ class ProjectionCombiner:
             raise ValueError(f"Unknown combination method: {method}")
         
         # Merge all projections on player key
-        merged = self._merge_projections(dataframe_projections, player_key, projection_key)
+        # Merge projections using exact or fuzzy matching
+        if self.use_fuzzy_matching and len(dataframe_projections) > 1:
+            merged = self._merge_projections_fuzzy(dataframe_projections, player_key, projection_key)
+        else:
+            merged = self._merge_projections(dataframe_projections, player_key, projection_key)
         
         # Apply combination method
         result = combination_func(merged, weights=weights, **kwargs)
@@ -120,6 +142,77 @@ class ProjectionCombiner:
             proj_df = df[[player_key, projection_key]].copy()
             proj_df = proj_df.rename(columns={projection_key: f'proj_{i}'})
             result = result.merge(proj_df, on=player_key, how='outer')
+        
+        return result
+    
+    def _merge_projections_fuzzy(
+        self, 
+        projections: List[pd.DataFrame], 
+        player_key: str, 
+        projection_key: str
+    ) -> pd.DataFrame:
+        """
+        Merge projection DataFrames using fuzzy player matching
+        
+        Args:
+            projections: List of projection DataFrames
+            player_key: Column to merge on
+            projection_key: Column containing projections
+            
+        Returns:
+            Merged DataFrame with projections from matched sources
+        """
+        if not projections or not self.player_matcher:
+            return pd.DataFrame()
+        
+        if len(projections) == 1:
+            # Only one projection, no need for matching
+            result = projections[0][[player_key, projection_key]].copy()
+            result = result.rename(columns={projection_key: 'proj_0'})
+            return result
+        
+        # Start with first DataFrame
+        result = projections[0].copy()
+        result = result.rename(columns={projection_key: 'proj_0'})
+        
+        # Merge each subsequent DataFrame using fuzzy matching
+        for i, df in enumerate(projections[1:], 1):
+            # Get best matches between result and current df
+            matches = self.player_matcher.get_best_matches(
+                result.to_dict('records'),
+                df.to_dict('records'),
+                allow_duplicates=False
+            )
+            
+            # Create matched data
+            matched_data = []
+            result_indices_used = set()
+            
+            for match in matches:
+                # Get the matched records
+                result_player = result.iloc[match.source1_index].copy()
+                df_player = df.iloc[match.source2_index]
+                
+                # Add the new projection
+                result_player[f'proj_{i}'] = df_player[projection_key]
+                result_player['match_similarity'] = match.similarity
+                
+                matched_data.append(result_player)
+                result_indices_used.add(match.source1_index)
+            
+            # Add unmatched players from result
+            for idx, player in result.iterrows():
+                if idx not in result_indices_used:
+                    player_copy = player.copy()
+                    player_copy[f'proj_{i}'] = np.nan  # No match found
+                    matched_data.append(player_copy)
+            
+            # Convert back to DataFrame
+            if matched_data:
+                result = pd.DataFrame(matched_data).reset_index(drop=True)
+            else:
+                # No matches found, keep original result with NaN for new projection
+                result[f'proj_{i}'] = np.nan
         
         return result
     
