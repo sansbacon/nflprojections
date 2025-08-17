@@ -11,6 +11,7 @@ from .sources.espn import ESPNProjections
 
 from .sources.rotogrinders_refactored import RotogrindersProjections
 from .sources.fantasylife import FantasyLifeProjections
+from .sources.fantasypros import FantasyProsProjections
 
 from .combine.projectioncombiner import ProjectionCombiner, CombinationMethod
 
@@ -21,6 +22,7 @@ __all__ = [
     'ESPNProjections',
     'RotogrindersProjections',
     'FantasyLifeProjections',
+    'FantasyProsProjections',
     'ProjectionCombiner',
     'CombinationMethod'
 ]

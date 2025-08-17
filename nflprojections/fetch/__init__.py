@@ -11,6 +11,7 @@ from .etr_fetcher import ETRFetcher
 from .rotogrinders_fetcher import RotogrindersWebFetcher
 from .espn_fetcher import ESPNFetcher
 from .fantasylife_fetcher import FantasyLifeFetcher
+from .fantasypros_fetcher import FantasyProsFetcher
 
 __all__ = [
     'DataSourceFetcher',
@@ -20,5 +21,6 @@ __all__ = [
     'ETRFetcher',
     'RotogrindersWebFetcher',
     'ESPNFetcher',
-    'FantasyLifeFetcher'
+    'FantasyLifeFetcher',
+    'FantasyProsFetcher'
 ]
