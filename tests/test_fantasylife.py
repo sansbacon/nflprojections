@@ -127,6 +127,71 @@ class TestFantasyLifeParser:
         assert parser.validate_parsed_data("not a list") == False
         assert parser.validate_parsed_data([]) == False
         assert parser.validate_parsed_data([{"some": "data"}]) == True  # Basic structure is OK
+    
+    def test_fantasylife_transformations(self):
+        """Test specific transformations required by issue #54"""
+        parser = FantasyLifeParser()
+        
+        # Test data from the issue description
+        csv_content = '''#,Player,Position,Team,P Att,Comp,Comp%,P Yds,TD,Int,R Att,Ru Yds,Ru TD,Proj
+4,Jayden Daniels,QB,WAS,497.0,339.5,69%,"3,735.5",25.4,9.6,138.9,816.1,5.5,356.1'''
+        
+        parsed_data = parser.parse_raw_data(csv_content)
+        assert len(parsed_data) == 1
+        
+        record = parsed_data[0]
+        
+        # Test transformation 1: '#' -> 'Jersey_Number'
+        assert '#' not in record, "Original '#' column should be removed"
+        assert 'Jersey_Number' in record, "Should have 'Jersey_Number' column"
+        assert record['Jersey_Number'] == 4
+        
+        # Test transformation 2: 'Comp%' string to decimal
+        assert record['Comp%'] == 0.69, f"Expected 0.69, got {record['Comp%']}"
+        
+        # Test transformation 3: 'P Yds' comma-separated string to numeric
+        assert record['P Yds'] == 3735.5, f"Expected 3735.5, got {record['P Yds']}"
+        
+        # Verify other fields are unchanged
+        assert record['Player'] == 'Jayden Daniels'
+        assert record['Position'] == 'QB'
+        assert record['Team'] == 'WAS'
+        assert record['P Att'] == 497.0
+        assert record['Comp'] == 339.5
+        assert record['TD'] == 25.4
+        assert record['Int'] == 9.6
+        assert record['R Att'] == 138.9
+        assert record['Ru Yds'] == 816.1
+        assert record['Ru TD'] == 5.5
+        assert record['Proj'] == 356.1
+    
+    def test_transformation_edge_cases(self):
+        """Test edge cases for transformations"""
+        parser = FantasyLifeParser()
+        
+        # Test with various edge cases
+        csv_content = '''#,Player,Comp%,P Yds
+1,Player1,50%,"1,000.0"
+2,Player2,invalid%,"not,numeric"
+3,Player3,100%,500.5'''
+        
+        parsed_data = parser.parse_raw_data(csv_content)
+        assert len(parsed_data) == 3
+        
+        # Test normal case
+        assert parsed_data[0]['Jersey_Number'] == 1
+        assert parsed_data[0]['Comp%'] == 0.5
+        assert parsed_data[0]['P Yds'] == 1000.0
+        
+        # Test invalid percentage (should remain unchanged)
+        assert parsed_data[1]['Jersey_Number'] == 2
+        assert parsed_data[1]['Comp%'] == 'invalid%'  # Should remain as string
+        assert parsed_data[1]['P Yds'] == 'not,numeric'  # Should remain as string
+        
+        # Test without comma in P Yds
+        assert parsed_data[2]['Jersey_Number'] == 3
+        assert parsed_data[2]['Comp%'] == 1.0
+        assert parsed_data[2]['P Yds'] == 500.5
 
 
 class TestFantasyLifeProjections:

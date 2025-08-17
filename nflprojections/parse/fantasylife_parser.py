@@ -50,6 +50,10 @@ class FantasyLifeParser(DataSourceParser):
             # Convert to list of dictionaries
             projections_data = df.to_dict('records')
             
+            # Apply transformations to each record
+            for record in projections_data:
+                self._transform_record(record)
+            
             logger.info(f"Parsed {len(projections_data)} FantasyLife projections")
             
             # Validate the parsed data
@@ -68,6 +72,37 @@ class FantasyLifeParser(DataSourceParser):
         except Exception as e:
             logger.error(f"Unexpected error parsing FantasyLife data: {e}")
             return []
+    
+    def _transform_record(self, record: Dict[str, Any]) -> None:
+        """
+        Apply transformations to a single record in-place
+        
+        Args:
+            record: Dictionary representing a single row of data
+        """
+        # 1. Rename '#' to 'Jersey_Number'
+        if '#' in record:
+            record['Jersey_Number'] = record.pop('#')
+        
+        # 2. Convert 'Comp%' from percentage string to decimal
+        if 'Comp%' in record and isinstance(record['Comp%'], str):
+            comp_pct = record['Comp%']
+            if comp_pct.endswith('%'):
+                try:
+                    # Remove '%' and convert to decimal (e.g., '69%' -> 0.69)
+                    record['Comp%'] = float(comp_pct[:-1]) / 100.0
+                except (ValueError, TypeError):
+                    logger.warning(f"Could not convert Comp% '{comp_pct}' to decimal")
+        
+        # 3. Convert 'P Yds' from comma-separated string to numeric
+        if 'P Yds' in record and isinstance(record['P Yds'], str):
+            p_yds = record['P Yds']
+            try:
+                # Remove commas and convert to float (e.g., '3,735.5' -> 3735.5)
+                record['P Yds'] = float(p_yds.replace(',', ''))
+            except (ValueError, TypeError):
+                logger.warning(f"Could not convert P Yds '{p_yds}' to numeric")
+    
     
     def validate_parsed_data(self, data: List[Dict[str, Any]]) -> bool:
         """
