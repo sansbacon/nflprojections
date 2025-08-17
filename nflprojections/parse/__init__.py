@@ -11,6 +11,7 @@ from .etr_parser import ETRParser
 from .rotogrinders_parser import RotogrindersJSONParser
 from .espn_parser import ESPNParser
 from .fantasylife_parser import FantasyLifeParser
+from .fantasypros_parser import FantasyProsParser
 
 __all__ = [
     'DataSourceParser',
@@ -21,5 +22,6 @@ __all__ = [
     'ETRParser',
     'RotogrindersJSONParser',
     'ESPNParser',
-    'FantasyLifeParser'
+    'FantasyLifeParser',
+    'FantasyProsParser'
 ]
