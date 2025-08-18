@@ -92,6 +92,9 @@ class NFLComParser(HTMLTableParser):
         # Get data rows
         rows = table.find_all('tr')[1:] if headers else table.find_all('tr')
         
+        # Map generic table headers to proper statistical field names
+        header_mapping = self._create_header_mapping(headers)
+        
         for row in rows:
             cells = row.find_all(['td', 'th'])
             if not cells:
@@ -102,35 +105,40 @@ class NFLComParser(HTMLTableParser):
             if self._is_subheader_row(cell_texts):
                 continue  # Skip sub-header rows
             
+            # Skip rows where first cell is "-" or empty (these are often sub-data rows)
+            if not cell_texts or cell_texts[0] in ['-', '']:
+                continue
+            
             player_data = {}
+            cell_values = [cell.get_text(strip=True) for cell in cells]
             
-            for i, cell in enumerate(cells):
-                text = cell.get_text(strip=True)
-                
-                if i == 0 and text:  # First column is usually player info
-                    player_data.update(self._parse_player_info(text))
-                elif i < len(headers) and headers[i]:
-                    # Map cell to header
-                    header = headers[i].lower()
-                    player_data[header] = text
-                elif i == 1 and not player_data.get('position'):
-                    # Second column might be position/team
-                    if re.match(r'^[A-Z]{2,3}$', text):  # Team code
-                        player_data['team'] = text
-                    elif text in ['QB', 'RB', 'WR', 'TE', 'K', 'DST']:
-                        player_data['position'] = text
+            # Extract player info from first column
+            if cell_values[0] and cell_values[0] != '-':
+                player_data.update(self._parse_player_info(cell_values[0]))
             
-                # Extract fantasy points if present
-                for cell in cells:
-                    text = cell.get_text(strip=True)
-                    if re.match(r'^\d+\.?\d*$', text) and 'fantasy_points' not in player_data:
+            # Map remaining columns using header mapping
+            for i, cell_value in enumerate(cell_values[1:], start=1):
+                if i < len(headers) and headers[i] in header_mapping:
+                    field_name = header_mapping[headers[i]]
+                    if field_name and cell_value != '-':
+                        # Try to convert numeric values
                         try:
-                            player_data['fantasy_points'] = float(text)
-                            break
+                            if '.' in cell_value:
+                                player_data[field_name] = float(cell_value)
+                            elif cell_value.isdigit():
+                                player_data[field_name] = int(cell_value)
+                            else:
+                                player_data[field_name] = cell_value
                         except ValueError:
-                            continue
+                            player_data[field_name] = cell_value
             
-            if player_data.get('player'):
+            # Extract fantasy points - should be the rightmost decimal value
+            fantasy_points = self._extract_fantasy_points_from_row(cell_values)
+            if fantasy_points is not None:
+                player_data['fantasy_points'] = fantasy_points
+            
+            # Only include rows with valid player data
+            if player_data.get('player') and (player_data.get('fantasy_points') or len(player_data) > 3):
                 data.append(player_data)
         
         return data
@@ -196,6 +204,67 @@ class NFLComParser(HTMLTableParser):
                 projections.append(player_data)
         
         return projections
+    
+    def _create_header_mapping(self, headers: List[str]) -> Dict[str, str]:
+        """
+        Create mapping from table headers to proper statistical field names
+        
+        Args:
+            headers: List of table headers from HTML
+            
+        Returns:
+            Dictionary mapping table headers to statistical field names
+        """
+        # Mapping of common table headers to proper statistical field names
+        # Based on expected NFL.com table structure 
+        header_to_stat = {
+            'Player': None,  # Handled separately in player parsing
+            'Passing': 'pass_yd',     # Passing yards 
+            'Rushing': 'pass_td',     # Passing TDs (in context of QB projections)
+            'Receiving': 'pass_int',  # Passing interceptions
+            'Ret': 'rush_yd',         # Rushing yards
+            'Misc': 'rush_td',        # Rushing TDs
+            'Fum': 'fumb_lost',       # Fumbles lost
+            'Fantasy': None,          # Fantasy points handled separately
+            'Opp': 'opp',             # Opponent
+            'GP': 'gp',               # Games played
+            'Yds': None,              # Generic yards - skip
+            'TD': 'fumb_td',          # Fumble TDs or other TDs
+            'Int': None,              # This column often contains fantasy points, not interceptions
+        }
+        
+        # Create the actual mapping for this table
+        mapping = {}
+        for header in headers:
+            if header in header_to_stat:
+                mapping[header] = header_to_stat[header]
+            else:
+                # For unknown headers, use lowercase version
+                mapping[header] = header.lower() if header else None
+                
+        return mapping
+    
+    def _extract_fantasy_points_from_row(self, cell_values: List[str]) -> float:
+        """
+        Extract fantasy points from a table row - should be the rightmost decimal value
+        
+        Args:
+            cell_values: List of cell values from the table row
+            
+        Returns:
+            Fantasy points value or None if not found
+        """
+        # Look for decimal numbers, fantasy points are typically the rightmost one
+        decimal_values = []
+        for value in cell_values:
+            if value and re.match(r'^\d+\.\d+$', value):
+                try:
+                    decimal_values.append(float(value))
+                except ValueError:
+                    continue
+        
+        # Return the last (rightmost) decimal value found
+        return decimal_values[-1] if decimal_values else None
     
     def _parse_playerstat_structure(self, soup: BeautifulSoup) -> List[Dict]:
         """
@@ -485,6 +554,14 @@ class NFLComParser(HTMLTableParser):
             player_data['team'] = match.group(3).strip()
             return player_data
         
+        # Pattern: "Player Name TEAM" (without position)
+        pattern3 = r'^([A-Za-z\s\.]+?)\s+([A-Z]{2,3})$'
+        match = re.match(pattern3, text)
+        if match:
+            player_data['player'] = match.group(1).strip()
+            player_data['team'] = match.group(2).strip()
+            return player_data
+        
         # Pattern: "Player Name - POS/TEAM" or similar variations
         parts = text.split('-')
         if len(parts) >= 2:
@@ -503,12 +580,32 @@ class NFLComParser(HTMLTableParser):
             if team_match:
                 player_data['team'] = team_match.group(1)
         
-        # If still no player name found, use the whole text as player name
+        # If still no player name found, try to extract from space-separated components
         if not player_data.get('player') and text:
-            # Clean up text for player name
-            clean_name = re.sub(r'[^A-Za-z\s\.]', ' ', text).strip()
-            if clean_name:
-                player_data['player'] = clean_name
+            parts = text.strip().split()
+            if len(parts) >= 2:
+                # Check if last part is a team code
+                if re.match(r'^[A-Z]{2,3}$', parts[-1]):
+                    team = parts[-1]
+                    # Check if second to last is position
+                    if len(parts) >= 3 and parts[-2] in ['QB', 'RB', 'WR', 'TE', 'K', 'DST']:
+                        player_name = ' '.join(parts[:-2])
+                        position = parts[-2]
+                        player_data['player'] = player_name
+                        player_data['position'] = position
+                        player_data['team'] = team
+                    else:
+                        # Just player name and team
+                        player_name = ' '.join(parts[:-1])
+                        player_data['player'] = player_name
+                        player_data['team'] = team
+                else:
+                    # No recognizable team code, use whole text as player name
+                    clean_name = re.sub(r'[^A-Za-z\s\.]', ' ', text).strip()
+                    if clean_name:
+                        player_data['player'] = clean_name
+        
+        return player_data
         
         return player_data
     
