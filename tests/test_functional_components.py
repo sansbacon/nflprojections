@@ -368,18 +368,18 @@ class TestNFLComComponents:
         
         # Check mapped statistics (based on statId mapping)
         assert player['gp'] == 16            # statId-1
-        assert player['pass_yd'] == 0        # Default value
+        assert player['pass_yds'] == 0       # Default value
         assert player['pass_td'] == 0        # Default value
         assert player['pass_int'] == 0       # statId-5 (empty)
-        assert player['rush_yd'] == 18       # statId-14 (corrected from rush_td)
+        assert player['rush_yds'] == 18      # statId-14 (corrected from rush_td)
         assert player['rush_td'] == 0        # Default value
         assert player['rec'] == 96           # statId-20
-        assert player['rec_yd'] == 1305      # statId-21 (singular to match scoring formats)
+        assert player['rec_yds'] == 1305     # statId-21 (plural to match scoring formats)
         assert player['rec_td'] == 8         # statId-22
         assert player['ret_td'] == 0         # Default value
-        assert player['fum_td'] == 0         # Default value
+        assert player['fumb_td'] == 0        # Default value
         assert player['two_pt'] == 0         # Default value (corrected from statId-30)
-        assert player['fum_lost'] == 1       # statId-30 (corrected mapping)
+        assert player['fumb_lost'] == 1      # statId-30 (corrected mapping)
     
     @patch('requests.head')
     def test_nflcom_fetcher_validate_connection(self, mock_head):

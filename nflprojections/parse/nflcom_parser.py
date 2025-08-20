@@ -74,15 +74,6 @@ class NFLComParser(HTMLTableParser):
         return data
     
     def _fix_dtypes(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Fix data types in the projection data dictionary
-
-        Args:
-            data: Dictionary with projection data
-
-        Returns:
-            Dictionary with fixed data types
-        """
         plpatt = re.compile(r"^(.*?)(QB|WR|RB|TE|DST).*?([A-Z]{2,3})$")
 
         for key, value in data.items():
