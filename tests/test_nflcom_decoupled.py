@@ -160,45 +160,6 @@ def test_nflcom_data_pipeline():
         mock_standardizer.standardize.assert_called_once_with([{"player": "Patrick Mahomes", "points": 25}])
 
 
-def test_nflcom_fetch_projections_delegates_to_data_pipeline():
-    """Test that NFLComProjections fetch_projections delegates to data_pipeline"""
-    try:
-        from nflprojections.sources.nflcom import NFLComProjections
-    except ImportError:
-        pytest.skip("Cannot import NFLComProjections due to dependency issues")
-        
-    # Mock the components
-    with patch('nflprojections.sources.nflcom.NFLComFetcher') as mock_fetcher_class, \
-         patch('nflprojections.sources.nflcom.NFLComParser') as mock_parser_class, \
-         patch('nflprojections.sources.nflcom.ProjectionStandardizer') as mock_standardizer_class:
-        
-        mock_fetcher = Mock()
-        mock_fetcher.fetch_raw_data.return_value = "raw_nfl_data"
-        mock_fetcher_class.return_value = mock_fetcher
-        
-        mock_parser = Mock()
-        mock_parser.parse_raw_data.return_value = [{"player": "Patrick Mahomes", "points": 25}]
-        mock_parser_class.return_value = mock_parser
-        
-        mock_standardizer = Mock()
-        mock_standardizer.season = 2025
-        mock_standardizer.week = 1
-        mock_standardizer.standardize.return_value = [{"plyr": "Patrick Mahomes", "proj": 25.0}]
-        mock_standardizer_class.return_value = mock_standardizer
-        
-        # Create instance
-        nfl = NFLComProjections(season=2025, week=1)
-        
-        # Test that fetch_projections calls data_pipeline
-        result = nfl.fetch_projections(season=2025)
-        
-        assert result == [{"plyr": "Patrick Mahomes", "proj": 25.0}]
-        
-        # Verify all steps were called through data_pipeline
-        mock_fetcher.fetch_raw_data.assert_called_once_with(season=2025)
-        mock_parser.parse_raw_data.assert_called_once_with("raw_nfl_data")
-        mock_standardizer.standardize.assert_called_once_with([{"player": "Patrick Mahomes", "points": 25}])
-
 
 if __name__ == "__main__":
     # Run basic structure tests that don't require imports

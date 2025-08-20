@@ -431,7 +431,8 @@ class TestNFLComProjections:
         
         nfl = NFLComProjections()
         result = nfl.fetch_projections(season=2025)
-        
+    
+
         # Check that pipeline was called in order
         mock_fetch.assert_called_once_with(season=2025)
         mock_parse.assert_called_once_with("mock_html")
