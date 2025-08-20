@@ -219,10 +219,10 @@ class NFLComParser(HTMLTableParser):
         # Based on expected NFL.com table structure 
         header_to_stat = {
             'Player': None,  # Handled separately in player parsing
-            'Passing': 'pass_yd',     # Passing yards 
+            'Passing': 'pass_yds',    # Passing yards 
             'Rushing': 'pass_td',     # Passing TDs (in context of QB projections)
             'Receiving': 'pass_int',  # Passing interceptions
-            'Ret': 'rush_yd',         # Rushing yards
+            'Ret': 'rush_yds',        # Rushing yards
             'Misc': 'rush_td',        # Rushing TDs
             'Fum': 'fumb_lost',       # Fumbles lost
             'Fantasy': None,          # Fantasy points handled separately
@@ -278,8 +278,20 @@ class NFLComParser(HTMLTableParser):
         """
         projections = []
         
-        # Find all elements that contain playerStat spans
-        containers = soup.find_all(lambda tag: tag.find_all('span', class_=lambda x: x and 'playerStat' in x))
+        # Find all elements that contain playerStat spans - avoid nested duplicates
+        all_containers = soup.find_all(lambda tag: tag.find_all('span', class_=lambda x: x and 'playerStat' in x))
+        
+        # Filter out nested containers to avoid duplicates
+        containers = []
+        for container in all_containers:
+            # Only include if this container isn't nested inside another container
+            is_nested = False
+            for other in all_containers:
+                if other != container and container in other.find_all(True):
+                    is_nested = True
+                    break
+            if not is_nested:
+                containers.append(container)
         
         for container in containers:
             player_data = {}
@@ -379,26 +391,26 @@ class NFLComParser(HTMLTableParser):
         """Extract and map statistics from playerStat spans using statId"""
         stats = {}
         
-        # Mapping of statId to stat names - uses consistent naming with scoring formats
-        # Based on common NFL fantasy statistics
+        # Mapping of statId to stat names - corrected based on issue #62 analysis
+        # Based on actual NFL.com playerStat structure
         stat_id_mapping = {
             '1': 'gp',             # Games played
             '2': 'pass_att',       # Passing attempts  
-            '3': 'pass_yd',        # Passing yards (singular to match scoring formats)
-            '4': 'pass_td',        # Passing touchdowns
-            '5': 'pass_int',       # Passing interceptions
-            '6': 'rush_att',       # Rushing attempts
-            '7': 'rush_yd',        # Rushing yards (singular to match scoring formats)
-            '14': 'rush_yd',       # Rushing yards (alternate mapping)
-            '15': 'rush_lng',      # Rushing long
+            '3': 'pass_yd',        # Passing yards (alternate)
+            '4': 'pass_td',        # Passing touchdowns (alternate)
+            '5': 'pass_yds',       # Passing yards (main)
+            '6': 'pass_td',        # Passing touchdowns (main)
+            '7': 'pass_int',       # Passing interceptions
+            '14': 'rush_yds',      # Rushing yards (main)
+            '15': 'rush_td',       # Rushing touchdowns
             '20': 'rec',           # Receptions
-            '21': 'rec_yd',        # Receiving yards (singular to match scoring formats)
+            '21': 'rec_yds',       # Receiving yards
             '22': 'rec_td',        # Receiving touchdowns
             '23': 'rec_lng',       # Receiving long
-            '28': 'fumbles',       # Fumbles
-            '29': 'fumbles',       # Fumbles (total)
-            '30': 'fum_lost',      # Fumbles lost
-            '32': 'targets',       # Targets (receiving)
+            '28': 'ret_td',        # Return touchdowns
+            '29': 'fumb_td',       # Fumble touchdowns
+            '30': 'fumb_lost',     # Fumbles lost
+            '32': 'two_pt',        # Two point conversions
         }
         
         for span in spans:
@@ -430,13 +442,18 @@ class NFLComParser(HTMLTableParser):
     def _add_default_stats(self, player_data: Dict) -> Dict:
         """Add default values for common fantasy stats that may not be present"""
         defaults = {
-            'pass_yd': 0,
+            'pass_yds': 0,
             'pass_td': 0,
             'pass_int': 0,
+            'rush_yds': 0,
             'rush_td': 0,
+            'rec': 0,
+            'rec_yds': 0,
+            'rec_td': 0,
             'ret_td': 0,
-            'fum_td': 0,
+            'fumb_td': 0,
             'two_pt': 0,
+            'fumb_lost': 0,
         }
         
         # Only add defaults for stats that aren't already present

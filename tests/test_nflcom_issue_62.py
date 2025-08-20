@@ -70,20 +70,20 @@ def test_parse_issue_62_fix():
     assert player_data['opp'] == 'BUF'
     assert player_data['gp'] == 16
     assert player_data['fantasy_points'] == 351.96
-    assert player_data['pass_yd'] == 3619
+    assert player_data['pass_yds'] == 3619
     assert player_data['pass_td'] == 30
     assert player_data['pass_int'] == 9
-    assert player_data['rush_yd'] == 832
+    assert player_data['rush_yds'] == 832
     assert player_data['rush_td'] == 4
     assert player_data['fumb_lost'] == 4
     assert player_data['fumb_td'] == 1
     
     # Verify it does NOT produce the incorrect output from issue
     # Should not have these incorrect mappings:
-    assert 'passing' not in player_data  # Should be pass_yd instead
+    assert 'passing' not in player_data  # Should be pass_yds instead
     assert 'rushing' not in player_data  # Should be pass_td instead  
     assert 'receiving' not in player_data  # Should be pass_int instead
-    assert 'ret' not in player_data  # Should be rush_yd instead
+    assert 'ret' not in player_data  # Should be rush_yds instead
     assert 'misc' not in player_data  # Should be rush_td instead
     
     # Fantasy points should not be 16.0 (incorrect) but 351.96 (correct)
@@ -156,5 +156,57 @@ def test_full_integration_issue_62():
     # Verify key fields are correct
     assert result['player'] == 'Lamar Jackson'
     assert result['fantasy_points'] == 351.96
-    assert result['pass_yd'] == 3619
+    assert result['pass_yds'] == 3619
     assert result['team'] == 'BAL'
+
+
+def test_exact_issue_62_html_structure():
+    """Test parsing the exact HTML structure from issue #62 description"""
+    
+    # This is the exact HTML structure from the issue description with player name added
+    sample_html = """
+    <html>
+    <body>
+        <div>
+            Lamar Jackson QB BAL @BUF<span class="playerStat statId-1 playerId-2560757">16</span><span class="playerStat statId-5 playerId-2560757">3619</span><span class="playerStat statId-6 playerId-2560757">30</span><span class="playerStat statId-7 playerId-2560757">9</span><span class="playerStat statId-14 playerId-2560757">832</span><span class="playerStat statId-15 playerId-2560757">4</span><span class="playerStat statId-20 playerId-2560757"></span><span class="playerStat statId-21 playerId-2560757"></span><span class="playerStat statId-22 playerId-2560757"></span><span class="playerStat statId-28 playerId-2560757"></span><span class="playerStat statId-29 playerId-2560757">1</span><span class="playerStat statId-32 playerId-2560757"></span><span class="playerStat statId-30 playerId-2560757">4</span>351.96
+        </div>
+    </body>
+    </html>
+    """
+    
+    # Expected output dictionary from the issue description
+    expected_output = {
+        'player': 'Lamar Jackson',
+        'position': 'QB',
+        'team': 'BAL',
+        'opp': 'BUF',
+        'gp': 16,
+        'pass_yds': 3619,
+        'pass_td': 30,
+        'pass_int': 9,
+        'rush_yds': 832,
+        'rush_td': 4,
+        'rec': 0,
+        'rec_yds': 0,
+        'rec_td': 0,
+        'ret_td': 0,
+        'fumb_td': 1,
+        'two_pt': 0,
+        'fumb_lost': 4,
+        'fantasy_points': 351.96
+    }
+    
+    # Test the parser
+    parser = NFLComParser()
+    soup = BeautifulSoup(sample_html, 'html.parser')
+    parsed_data = parser.parse_raw_data(soup)
+    
+    # Should have exactly one player record
+    assert len(parsed_data) == 1
+    
+    player_data = parsed_data[0]
+    
+    # Verify all expected fields match exactly
+    for key, expected_value in expected_output.items():
+        assert key in player_data, f"Missing field: {key}"
+        assert player_data[key] == expected_value, f"Field {key}: got {player_data[key]}, expected {expected_value}"
